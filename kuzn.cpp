@@ -42,7 +42,7 @@ namespace blockKuz{
 				promez2=0x0;
 				smeshenie=0x1;	
 				check=false;
-				std::cout<<counter<<"\n";
+				//std::cout<<counter<<"\n";
 				counter++;
 				//умножение полиномов
 			
@@ -69,8 +69,8 @@ namespace blockKuz{
 
 				//дальше надо реализовать второй блок с подбором целого для вычисления коэффициента (читать в тетради)
 
-				for(smeshenie;;smeshenie++){
-					sleep(2);
+				for(;;){
+					//sleep(2);
 					for (int l=0;l<8;l++){
 						//проверилstd::cout<<"Her\n";
 						if((smeshenie>>l)&0x1){
@@ -79,17 +79,18 @@ namespace blockKuz{
 					}
 
 
-					std::cout<<"Nu nahui\n";
+					//std::cout<<"Nu nahui\n";
 
 					promez2^=promez1;
 
-					std::cout<<"Vot suka!\n";
-					for (int c=15;c<6;c--){
-						printf("%i\n",c);
-						std::cout<<"Blya\n";
+					//std::cout<<"Vot suka!\n";
+					int c=15;
+					while(c>6){
+						//printf("%i\n",c);
+						//std::cout<<"Blya\n";
 						if( ((promez2>>c)&0x1) == 0x1 && (c>7)){
-							std::cout<<"Hi\n";
-							//smeshenie++;
+							//std::cout<<"Hi\n";
+							smeshenie++;
 							promez2=0x0;
 							break;
 						}
@@ -98,10 +99,12 @@ namespace blockKuz{
 							check=true;
 							break;
 						}
+						c--;
 					}
-					std::cout<<promez1<<"\n";//i<<" "<<j<<"\n";
+					//printf("%i\n%i %i\n",polinMultiple[i][j],i,j);
 					if (check) break;
 				}
+				printf("%i\n%i %i\n",polinMultiple[i][j],i,j);
 			}
 		}
 	}
