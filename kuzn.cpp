@@ -28,6 +28,8 @@ static uint8_t polinMultiple[256][256];
 
 
 namespace blockKuz{
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Работает верно, одобрено
 
 	void generateTable(){
 		unsigned short int promez1, promez2, smeshenie;
@@ -92,9 +94,49 @@ namespace blockKuz{
 			}
 		}
 	}
-	
-	void generateMatrix(){
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Работает верно, одобрено
+	static inline void copy(uint8_t **res){
+		for (uint8_t i=0;i<16;i++){
+			for (uint8_t j=0;j<16;j++){
+				res[i][j]=matrix[i][j];
+			}
+		}
+	};
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Работает верно, одобрено
+	static void generateMatrix(){
+		uint8_t smezh;
+		uint8_t **exponMatrix;
+		exponMatrix=new uint8_t*[16];
+		for (uint8_t i=0;i<16;i++){
+			exponMatrix[i] = new uint8_t[16];
+		}
+		for(uint8_t i=0; i<4;i++){
+			copy(exponMatrix);
+			for(int c=0;c<16;c++){
+				for(int e=0;e<16;e++){
+					printf("%i ",exponMatrix[c][e]);
+				}
+				printf("\n");
+			}
+			std::cout<<"\n";
+			for (int l=0;l<16;l++){
+				for (int j=0;j<16;j++){
+					smezh=0x0;
+					for(int r=0;r<16;r++){
+						smezh^=polinMultiple[exponMatrix[l][r]][exponMatrix[r][j]];
+					}
+					matrix[l][j]=smezh;
+				}
+			}
+		}
+		//очищаем память для вспомогательного массива
+		for(uint8_t i=0; i<16;i++);
+	};
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+		
 
 	class LSX{
 		private:
@@ -142,6 +184,14 @@ namespace blockKuz{
 };
 int main(){
 	blockKuz::generateTable();
+	blockKuz::generateMatrix();
+	for (int i=0; i<16;i++){
+		for(int j=0;j<16;j++){
+			printf("%i ",matrix[i][j]);
+		}
+		std::cout<<"\n";
+	}
+	printf("\n%i\n",polinMultiple[192][0]);
 //	for(int i=0;i<256;i++){
 //		for(int j=0;j<256;j++){
 //			printf("%i ", polinMultiple[i][j]);
