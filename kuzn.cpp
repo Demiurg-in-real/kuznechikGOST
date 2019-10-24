@@ -92,8 +92,8 @@ namespace blockKuz{
 			}
 		}
 	}
-
-
+	
+	void generateMatrix(){
 
 
 	class LSX{
