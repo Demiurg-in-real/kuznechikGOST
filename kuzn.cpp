@@ -43,15 +43,15 @@ namespace blockKuz{
 				check=false;
 				//умножение полиномов
 			
-				for (int l=0;l<8;l++){
-					if((j>>l)&0x1 == 0x1){
+				for (uint8_t l=0;l<8;l++){
+					if( ((j>>l)&0x1) == 0x1){
 						promez1^=(i<<l);
 					}
 				}
 
 				//нахождение максимальной степени
 					
-				for (int l=15;l>6;l--){
+				for (uint8_t l=15;l>6;l--){
 					if( ((promez1>>l)&0x1) == 0x1 && (l > 7)){
 						smeshenie=(smeshenie<<(l-8));
 						break;
@@ -66,7 +66,7 @@ namespace blockKuz{
 				//дальше надо реализовать второй блок с подбором целого для вычисления коэффициента (читать в тетради)
 
 				for(;;){
-					for (int l=0;l<8;l++){
+					for (uint8_t l=0;l<8;l++){
 						if((smeshenie>>l)&0x1){
 							promez2^=(polynom<<l);
 						}
@@ -74,7 +74,7 @@ namespace blockKuz{
 
 					promez2^=promez1;
 
-					int c=15;
+					uint8_t c=15;
 					while(c>6){
 						if( ((promez2>>c)&0x1) == 0x1 && (c>7)){
 							smeshenie++;
@@ -90,7 +90,6 @@ namespace blockKuz{
 					}
 					if (check) break;
 				}
-				printf("%i\n%i %i\n",polinMultiple[i][j],i,j);
 			}
 		}
 	}
@@ -114,17 +113,10 @@ namespace blockKuz{
 		}
 		for(uint8_t i=0; i<4;i++){
 			copy(exponMatrix);
-			for(int c=0;c<16;c++){
-				for(int e=0;e<16;e++){
-					printf("%i ",exponMatrix[c][e]);
-				}
-				printf("\n");
-			}
-			std::cout<<"\n";
-			for (int l=0;l<16;l++){
-				for (int j=0;j<16;j++){
+			for (uint8_t l=0;l<16;l++){
+				for (uint8_t j=0;j<16;j++){
 					smezh=0x0;
-					for(int r=0;r<16;r++){
+					for(uint8_t r=0;r<16;r++){
 						smezh^=polinMultiple[exponMatrix[l][r]][exponMatrix[r][j]];
 					}
 					matrix[l][j]=smezh;
@@ -132,7 +124,10 @@ namespace blockKuz{
 			}
 		}
 		//очищаем память для вспомогательного массива
-		for(uint8_t i=0; i<16;i++);
+		for(uint8_t i=0; i<16;i++){
+			delete [] exponMatrix[i];
+		}
+		delete [] exponMatrix;
 	};
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -176,7 +171,7 @@ namespace blockKuz{
 		for (uint8_t i=0;i<16;i++){
 			matrixOperation[i]=0;
 			for(uint8_t j=0; j<16;j++){
-				matrixOperation[i] += (swap[j] * matrix[i][j]);
+				matrixOperation[i] ^= (swap[j] * matrix[i][j]);
 			}
 			((char*)block)[i]=matrixOperation[i];
 		}
@@ -185,18 +180,11 @@ namespace blockKuz{
 int main(){
 	blockKuz::generateTable();
 	blockKuz::generateMatrix();
-	for (int i=0; i<16;i++){
-		for(int j=0;j<16;j++){
-			printf("%i ",matrix[i][j]);
-		}
-		std::cout<<"\n";
-	}
-	printf("\n%i\n",polinMultiple[192][0]);
-//	for(int i=0;i<256;i++){
-//		for(int j=0;j<256;j++){
-//			printf("%i ", polinMultiple[i][j]);
+//	for(int i=0; i<16;i++){
+//		for(int j=0;j<16;j++){
+//			printf("%i ",matrix[i][j]);
 //		}
-//		printf("\n");
+//		std::cout<<"\n";
 //	}
 	return 0;
 }
