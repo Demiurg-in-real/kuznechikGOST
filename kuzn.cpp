@@ -26,6 +26,8 @@ const static unsigned short int polynom=451;
 
 static uint8_t polinMultiple[256][256];
 
+//const uint8_t vector_for_key[16]={0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+
 
 namespace blockKuz{
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -131,60 +133,213 @@ namespace blockKuz{
 	};
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-		
+//	class L_S_X{
+//		protected:
+//			virtual void X();
+//			virtual void S();
+//			virtual void L();
+//			virtual void reset();
+//		private:
+//			uint8_t *newVector;
+//	};
 
-	class LSX{
+	class LSX{//::public L_S_X{
+		public:
+			void X (uint8_t *key, uint8_t *block,uint8_t &order);
+			void S (uint8_t *block);
+			void L (uint8_t *block);
+			void generate_key(uint8_t *key,uint8_t &order);
 		private:
-			void X(uint64_t *key, uint64_t *block);
-			void S(uint64_t *block);
-			void L(uint64_t *block);
-			uint8_t *swap;
-			uint8_t *matrixOperation;
+			uint8_t *newVector;
+			uint8_t vector_for_key[16]={0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+		protected:
+			void reset(uint8_t *block);
+			void swap(uint8_t *key);
 		public:
 			LSX();
 			~LSX();
 	};
 
 	LSX::LSX(){
-		swap = new uint8_t [16];
-		matrixOperation = new uint8_t [16];
+		newVector = new uint8_t [16];
 	};
 
 	LSX::~LSX(){
-		delete [] swap;
-		delete [] matrixOperation;
+		delete [] newVector;
 	};
-
-	void LSX::X(uint64_t *key, uint64_t *block){
-		block[0]^=key[0];
-		block[1]^=key[1];
-	};
-
-	void LSX::S(uint64_t *block){
-		swap=(uint8_t*)block;
-		for(register uint8_t i=0; i<16;i++){
-			swap[i]=Pi[swap[i]];
+	
+	void LSX::reset(uint8_t *block){
+		for(uint8_t i=0; i<16; i++){
+			block[i]=newVector[i];
+			newVector[i]=0x0;
 		}
-	};
+	}
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Проверенная функция
+	void LSX::X(uint8_t *key, uint8_t *block, uint8_t &order){ // order  - для определния того, какой по счёту ключ используется
+		std::cout<<"\nBegin of block X.\n";
+		for (uint8_t i=0; i<16; i++){
+			block[i]^=key[order*16+i];
+		}
+		for(int i=0;i<16;i++) printf("%2x ",block[i]);
+		std::cout<<"\nThe end of block X.\n";
+//		S(block);
+	}
 
-	void LSX::L(uint64_t *block){
-		for (uint8_t i=0;i<16;i++){
-			matrixOperation[i]=0;
-			for(uint8_t j=0; j<16;j++){
-				matrixOperation[i] ^= (swap[j] * matrix[i][j]);
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------
+//проверенная функция.
+
+	void LSX::S(uint8_t *block){
+		std::cout<<"\nBegin of block S.\n";
+		for(uint8_t i=0; i<16;i++){
+			block[i]=Pi[block[i]];
+		}
+		for(int i=0;i<16;i++) printf("%2x ",block[i]);
+		std::cout<<"\nThe end of block S.\n";
+//		L(block);
+	}
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	void LSX::L(uint8_t *block){
+		std::cout<<"\nBegin of block L.\n";
+		for(uint8_t i=0; i<16;i++){
+			for (uint8_t j=0; j<16;j++){
+				for(uint8_t k=0; k<16;k++){
+					newVector[i]^=polinMultiple[/*block[k]*/matrix[j][k]][/*matrix[j][k]*/block[k]]; // спорный момент, перепроверь
+				}
 			}
-			((char*)block)[i]=matrixOperation[i];
 		}
+		reset(block);
+		for(int i=0;i<16;i++) printf("%2x ",block[i]);
+		std::cout<<"\nThe end of block L.\n";
+	}
+	void LSX::swap(uint8_t *key){
+		std::cout<<"\nBegin of swaping keys.\n";
+		for(int i=0;i<32;i++){
+			printf("%2x",key[i]);
+			if( i == 15) std::cout<<" , ";
+		}
+		std::cout<<"\n";
+		uint8_t rebel;
+		for(uint8_t oran=0;oran<16;oran++){
+			rebel=key[oran+16];
+			key[oran+16]=key[oran];
+			key[oran]=rebel;
+		}
+		for(int i=0; i<16;i++){
+			printf("%2x",key[i]);
+			if (i == 15) printf(" , ");
+		}
+		std::cout<<"\nThe end of swaping keys\n";
+	}
+	void LSX::generate_key(uint8_t *key,uint8_t &order){
+		std::cout<<"\nBegin of generating key.\n";
+		printf("The \"Begin\" key.\n");
+		for(int i=0;i<32;i++){
+			printf("%2x",key[i]);
+			if (i == 15) printf(" , ");
+		}
+		std::cout<<"\n________________________________\n";
+		for(uint8_t i=order*8; i<((order+1)*8);i++){
+			vector_for_key[0]=i+1;
+			uint8_t ord=0;
+			L(vector_for_key);
+			X(vector_for_key,key,ord);
+			S(key);
+			L(key);
+			for(uint8_t j=0; j<16;j++){
+				key[j]^=key[16+j];
+			}
+			swap(key);
+		}
+		printf("The \"Result\" key.\n");
+		for(int i=0;i<32;i++){
+			printf("%2x",key[i]);
+			if (i==15) printf(" , ");
+		}
+		std::cout<<"\n________________________________\n";
+		printf("\nThe end of generating key.\n");
+	}
+
+			
+		
+	class EncDec{
+		public:
+			void encrypt(uint8_t *block, uint8_t *key);
 	};
+	void EncDec::encrypt(uint8_t *block, uint8_t *key){
+		printf("\nThe begin of encryption\nThe block:\n");
+		for(int i=0;i<16;i++)printf("%2x",block[i]);
+		printf("\nThe key:\n");
+		for(int i=0;i<32;i++){
+			printf("%2x",key[i]);
+			if (i == 15) printf(" , ");
+		}
+		std::cout<<"\n__________\n";
+		LSX fight;
+		uint8_t promez=0;
+		for(uint8_t i=0; i<4 ; i++){
+			for(uint8_t j=0; j<2; j++){
+				fight.X(key,block,j);
+				fight.S(block);
+				fight.L(block);
+			}
+			fight.generate_key(key,i);
+		}
+		fight.X(key,block,promez);
+		fight.S(block);
+		fight.L(block);
+		promez++;
+		fight.X(key,block,promez);
+		printf("\nThe end of encryption.\nThe block:\n");
+		for(int i=0;i<16;i++) printf("%2x",block[i]);
+		std::cout<<"\n__________\n";
+	}
 };
 int main(){
+//	std::cout<<"Hi!\n";
 	blockKuz::generateTable();
 	blockKuz::generateMatrix();
-//	for(int i=0; i<16;i++){
-//		for(int j=0;j<16;j++){
-//			printf("%i ",matrix[i][j]);
-//		}
-//		std::cout<<"\n";
-//	}
+	std::cout<<"1\n";
+	FILE *rea=fopen("begin.bin","rb");
+	if (rea == NULL) perror("fopen");
+	std::cout<<"2\n";
+	uint8_t ge;
+	uint8_t *block;
+	uint8_t *key;
+	std::cout<<"3\n";
+	key= new uint8_t [32];
+	block = new uint8_t [16];
+	std::cout<<"4\n";
+	for(int i=0; i<16;i++){
+		std::cout<<"4.1\n";
+		fread(&ge,sizeof(uint8_t),1,rea);
+		printf("%2x\n",ge);
+		block[i]=ge;
+	}
+	std::cout<<"5";
+	for(int i=0; i<32; i++){
+		fread(&ge,sizeof(uint8_t),1,rea);
+		key[i]=ge;
+	}
+	for(int i=0;i<32;i++)printf("%2x",key[i]);
+	std::cout<<"\n";
+	blockKuz::EncDec tir;
+	tir.encrypt(block,key);
+	FILE *wr=fopen("result.bin","wb");
+	for(int i=0; i<16;i++){
+		ge=block[i];
+		fwrite(&ge,sizeof(uint8_t),1,wr);
+	}
+	fclose(wr);
+	fclose(rea);
+	for (int i=0; i<16;i++){
+		for(int j=0; j<16;j++){
+			printf("%i ", matrix[i][j]);
+		}
+		std::cout<<"\n";
+	}
 	return 0;
+
 }
