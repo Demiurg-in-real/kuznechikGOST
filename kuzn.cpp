@@ -151,7 +151,7 @@ namespace blockKuz{
 			void generate_key(uint8_t *key,uint8_t &order);
 		private:
 			uint8_t *newVector;
-			uint8_t vector_for_key[16]={0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
+			uint8_t vector_for_key[16]={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 		protected:
 			void reset(uint8_t *block);
 			void swap(uint8_t *key);
@@ -162,6 +162,7 @@ namespace blockKuz{
 
 	LSX::LSX(){
 		newVector = new uint8_t [16];
+		for(int i=0;i<16;i++) newVector[i]=0x0;
 	};
 
 	LSX::~LSX(){
@@ -203,13 +204,19 @@ namespace blockKuz{
 
 	void LSX::L(uint8_t *block){
 		std::cout<<"\nBegin of block L.\n";
-		for(uint8_t i=0; i<16;i++){
+		for (int i=0;i<16;i++)printf("%2x ",block[i]);
+//		for(uint8_t i=0; i<16;i++){
 			for (uint8_t j=0; j<16;j++){
+//				if (i == 0) printf("\n");
 				for(uint8_t k=0; k<16;k++){
-					newVector[i]^=polinMultiple[/*block[k]*/matrix[j][k]][/*matrix[j][k]*/block[k]]; // спорный момент, перепроверь
+//					if (i == 0) printf("%i xor %i = %2x\n",block[k],matrix[k][j],polinMultiple[matrix[k][j]][block[k]]);
+					newVector[j]^=polinMultiple[/*block[k]*/matrix[k][j]][/*matrix[j][k]*/block[k]]; // спорный момент, перепроверь
 				}
 			}
-		}
+//		}
+		printf("\nResult:\n");
+		for( int i=0;i<16;i++) printf("%2x ",newVector[i]);
+		printf("\n");
 		reset(block);
 		for(int i=0;i<16;i++) printf("%2x ",block[i]);
 		std::cout<<"\nThe end of block L.\n";
@@ -242,7 +249,7 @@ namespace blockKuz{
 		}
 		std::cout<<"\n________________________________\n";
 		for(uint8_t i=order*8; i<((order+1)*8);i++){
-			vector_for_key[0]=i+1;
+			vector_for_key[15]=i+1;
 			uint8_t ord=0;
 			L(vector_for_key);
 			X(vector_for_key,key,ord);
@@ -252,7 +259,8 @@ namespace blockKuz{
 				key[j]^=key[16+j];
 			}
 			swap(key);
-		}
+			for (int l=0;l<16;l++) vector_for_key[l]=0x0; // очистка подаваемого вектора. Я то работаю с указателями, а автоочистки результирующего вектора для генерации ключей нет...
+		}// У меня неправильно свапаются ключи, нужно посмотреть по госту алгоритм и сверить. Не по хабру, а именно по госту.
 		printf("The \"Result\" key.\n");
 		for(int i=0;i<32;i++){
 			printf("%2x",key[i]);
@@ -270,6 +278,13 @@ namespace blockKuz{
 	};
 	void EncDec::encrypt(uint8_t *block, uint8_t *key){
 		printf("\nThe begin of encryption\nThe block:\n");
+		printf("Let's see the table matrix.\n");
+		for(int i=0;i<16;i++){
+				for(int j=0;j<16;j++){
+					printf("%i ",matrix[i][j]);
+				}
+				printf("\n");
+		}
 		for(int i=0;i<16;i++)printf("%2x",block[i]);
 		printf("\nThe key:\n");
 		for(int i=0;i<32;i++){

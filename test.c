@@ -1,10 +1,25 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<inttypes.h>
-int main(){
-	uint64_t *i = 0x1122334455667788;
-	uint8_t l;
-	l=(uint8_t*)(i);
-	printf("%16x\n\n%16x\n",i,*i);
+int main(int argc,char* argv[]){
+	char key[10];
+	char strok[10];
+	char xor[10];
+	FILE *ptr=fopen(argv[1],"rb");
+	if (ptr == NULL){
+		perror("fopen");
+		return 0;
+	}
+	fread(key,sizeof(char),9,ptr);
+	fread(strok,sizeof(char),9,ptr);
+	printf("%s\n",key);
+	for(int i=0;i<10;i++)printf("%2x ",key[i]);
+	printf("\n%s\n",strok);
+	for(int i=0;i<10;i++) printf("%2x ",strok[i]);
+	printf("\n\n");
+	for(int i=0;i<10;i++){
+		xor[i]=key[i] ^ strok[i];
+		printf("%2x ",xor[i]);
+	}
 	return 0;
 }
