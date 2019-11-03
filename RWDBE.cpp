@@ -132,18 +132,7 @@ namespace blockKuz{
 		delete [] exponMatrix;
 	};
 //------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-//	class L_S_X{
-//		protected:
-//			virtual void X();
-//			virtual void S();
-//			virtual void L();
-//			virtual void reset();
-//		private:
-//			uint8_t *newVector;
-//	};
-
-	class LSX{//::public L_S_X{
+	class LSX{
 		public:
 			void X (uint8_t *key, uint8_t *block,uint8_t &order);
 			void S (uint8_t *block);
@@ -172,9 +161,9 @@ namespace blockKuz{
 
 	LSX::~LSX(){
 		delete [] newVector;
-//		newVector = NULL;
+		newVector = NULL;
 		delete [] swap_key;
-//		swap_key = NULL;
+		swap_key = NULL;
 	};
 	
 	void LSX::reset(uint8_t *block){
@@ -192,7 +181,6 @@ namespace blockKuz{
 		}
 		for(int i=0;i<16;i++) printf("%2x ",block[i]);
 		std::cout<<"\nThe end of block X.\n";
-//		S(block);
 	}
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -205,7 +193,6 @@ namespace blockKuz{
 		}
 		for(int i=0;i<16;i++) printf("%2x ",block[i]);
 		std::cout<<"\nThe end of block S.\n";
-//		L(block);
 	}
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -214,15 +201,11 @@ namespace blockKuz{
 	void LSX::L(uint8_t *block){
 		std::cout<<"\nBegin of block L.\n";
 		for (int i=0;i<16;i++)printf("%2x ",block[i]);
-//		for(uint8_t i=0; i<16;i++){
-			for (uint8_t j=0; j<16;j++){
-//				if (i == 0) printf("\n");
-				for(uint8_t k=0; k<16;k++){
-//					if (i == 0) printf("%i xor %i = %2x\n",block[k],matrix[k][j],polinMultiple[matrix[k][j]][block[k]]);
-					newVector[j]^=polinMultiple[/*block[k]*/matrix[k][j]][/*matrix[j][k]*/block[k]]; // спорный момент, перепроверь
-				}
+		for (uint8_t j=0; j<16;j++){
+			for(uint8_t k=0; k<16;k++){
+				newVector[j]^=polinMultiple[/*block[k]*/matrix[k][j]][/*matrix[j][k]*/block[k]]; // спорный момент, перепроверь
 			}
-//		}
+		}
 		printf("\nResult:\n");
 		for( int i=0;i<16;i++) printf("%2x ",newVector[i]);
 		printf("\n");
@@ -231,6 +214,7 @@ namespace blockKuz{
 		std::cout<<"\nThe end of block L.\n";
 	}
 //---------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Проверенная функция.
 	void LSX::swap(uint8_t *key,uint8_t *second_key){
 		std::cout<<"\nBegin of swaping keys.\n";
 		for(int i=0;i<32;i++){
@@ -238,10 +222,8 @@ namespace blockKuz{
 			if( i == 15) std::cout<<" , ";
 		}
 		std::cout<<"\n";
-//		uint8_t rebel;
 		for(uint8_t oran=0;oran<16;oran++){
 			key[oran+16]=second_key[oran];
-//			key[oran]=rebel;
 		}
 		for(int i=0; i<32;i++){
 			printf("%2x",key[i]);
@@ -249,6 +231,8 @@ namespace blockKuz{
 		}
 		std::cout<<"\nThe end of swaping keys\n";
 	}
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Проверенная функция.
 	void LSX::generate_key(uint8_t *key,uint8_t &order){
 		std::cout<<"\nBegin of generating key.\n";
 		printf("The \"Begin\" key.\n");
@@ -274,8 +258,8 @@ namespace blockKuz{
 				key[j]^=key[16+j];
 			}
 			swap(key,swap_key);
-			for (int l=0;l<16;l++) vector_for_key[l]=0x0; // очистка подаваемого вектора. Я то работаю с указателями, а автоочистки результирующего вектора для генерации ключей нет...
-		}// У меня неправильно свапаются ключи, нужно посмотреть по госту алгоритм и сверить. Не по хабру, а именно по госту.
+			for (int l=0;l<16;l++) vector_for_key[l]=0x0;
+		}
 		printf("The \"Result\" key.\n");
 		for(int i=0;i<32;i++){
 			printf("%2x",key[i]);
@@ -284,8 +268,8 @@ namespace blockKuz{
 		std::cout<<"\n________________________________\n";
 		printf("\nThe end of generating key.\n");
 	}
-
-			
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Проверенная функция.			
 		
 	class EncDec{
 		public:
@@ -326,13 +310,15 @@ namespace blockKuz{
 		for(int i=0;i<16;i++) printf("%2x",block[i]);
 		std::cout<<"\n__________\n";
 	}
+//_____________________________________________________________________________________________________________________________________________________________
 };
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//В main говнокод. Знаю, что можно быстрее, круче сделать, но оставлю так на случай, если кому-то понадобится разобраться или мне вспомнить.
 int main(){
-//	std::cout<<"Hi!\n";
 	blockKuz::generateTable();
 	blockKuz::generateMatrix();
 	std::cout<<"1\n";
-	FILE *rea=fopen("begin.bin","rb");
+	FILE *rea=fopen("begin1.bin","rb");
 	if (rea == NULL) perror("fopen");
 	std::cout<<"2\n";
 	uint8_t ge;
@@ -357,7 +343,7 @@ int main(){
 	std::cout<<"\n";
 	blockKuz::EncDec tir;
 	tir.encrypt(block,key);
-	FILE *wr=fopen("result.bin","wb");
+	FILE *wr=fopen("result1.bin","wb");
 	for(int i=0; i<16;i++){
 		ge=block[i];
 		fwrite(&ge,sizeof(uint8_t),1,wr);
