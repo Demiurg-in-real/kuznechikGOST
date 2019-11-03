@@ -151,10 +151,11 @@ namespace blockKuz{
 			void generate_key(uint8_t *key,uint8_t &order);
 		private:
 			uint8_t *newVector;
+			uint8_t *swap_key;
 			uint8_t vector_for_key[16]={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 		protected:
 			void reset(uint8_t *block);
-			void swap(uint8_t *key);
+			void swap(uint8_t *key, uint8_t *second_key);
 		public:
 			LSX();
 			~LSX();
@@ -162,11 +163,18 @@ namespace blockKuz{
 
 	LSX::LSX(){
 		newVector = new uint8_t [16];
-		for(int i=0;i<16;i++) newVector[i]=0x0;
+		swap_key = new uint8_t [16];
+		for(int i=0;i<16;i++) {
+			newVector[i]=0x0;
+			swap_key[i]=0x0;
+		}
 	};
 
 	LSX::~LSX(){
 		delete [] newVector;
+//		newVector = NULL;
+		delete [] swap_key;
+//		swap_key = NULL;
 	};
 	
 	void LSX::reset(uint8_t *block){
@@ -201,6 +209,7 @@ namespace blockKuz{
 	}
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------
+//проверенная функция.
 
 	void LSX::L(uint8_t *block){
 		std::cout<<"\nBegin of block L.\n";
@@ -221,20 +230,20 @@ namespace blockKuz{
 		for(int i=0;i<16;i++) printf("%2x ",block[i]);
 		std::cout<<"\nThe end of block L.\n";
 	}
-	void LSX::swap(uint8_t *key){
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------
+	void LSX::swap(uint8_t *key,uint8_t *second_key){
 		std::cout<<"\nBegin of swaping keys.\n";
 		for(int i=0;i<32;i++){
 			printf("%2x",key[i]);
 			if( i == 15) std::cout<<" , ";
 		}
 		std::cout<<"\n";
-		uint8_t rebel;
+//		uint8_t rebel;
 		for(uint8_t oran=0;oran<16;oran++){
-			rebel=key[oran+16];
-			key[oran+16]=key[oran];
-			key[oran]=rebel;
+			key[oran+16]=second_key[oran];
+//			key[oran]=rebel;
 		}
-		for(int i=0; i<16;i++){
+		for(int i=0; i<32;i++){
 			printf("%2x",key[i]);
 			if (i == 15) printf(" , ");
 		}
@@ -249,6 +258,12 @@ namespace blockKuz{
 		}
 		std::cout<<"\n________________________________\n";
 		for(uint8_t i=order*8; i<((order+1)*8);i++){
+			std::cout<<"Finding swap_key\n";
+			for(int j=0; j<16;j++) {
+				swap_key[j]=key[j];
+				printf("%2x ",swap_key[j]);
+			}
+			std::cout<<"\n";
 			vector_for_key[15]=i+1;
 			uint8_t ord=0;
 			L(vector_for_key);
@@ -258,7 +273,7 @@ namespace blockKuz{
 			for(uint8_t j=0; j<16;j++){
 				key[j]^=key[16+j];
 			}
-			swap(key);
+			swap(key,swap_key);
 			for (int l=0;l<16;l++) vector_for_key[l]=0x0; // очистка подаваемого вектора. Я то работаю с указателями, а автоочистки результирующего вектора для генерации ключей нет...
 		}// У меня неправильно свапаются ключи, нужно посмотреть по госту алгоритм и сверить. Не по хабру, а именно по госту.
 		printf("The \"Result\" key.\n");
