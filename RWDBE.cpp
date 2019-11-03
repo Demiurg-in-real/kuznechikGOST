@@ -203,7 +203,7 @@ namespace blockKuz{
 		for (int i=0;i<16;i++)printf("%2x ",block[i]);
 		for (uint8_t j=0; j<16;j++){
 			for(uint8_t k=0; k<16;k++){
-				newVector[j]^=polinMultiple[/*block[k]*/matrix[k][j]][/*matrix[j][k]*/block[k]]; // спорный момент, перепроверь
+				newVector[j]^=polinMultiple[matrix[k][j]][block[k]];
 			}
 		}
 		printf("\nResult:\n");
