@@ -3,6 +3,7 @@
 #include<sys/stat.h>//for fstat
 #include<fcntl.h>//for fd=open
 #include<unistd.h>//for close(fd)
+#include<signal.h>//for signals)
 const static uint8_t Pi[256] = {252, 238, 221, 17, 207, 110, 49, 22, 251, 196, 250, 218, 35, 197, 4, 77, 233, 119, 240, 219, 147, 46, 153, 186, 23, 54, 241, 187, 20, 205, 95, 193, 249, 24, 101, 90, 226, 92, 239, 33, 129, 28, 60, 66, 139, 1, 142, 79, 5, 132, 2, 174, 227, 106, 143, 160, 6, 11, 237, 152, 127, 212, 211, 31, 235, 52, 44, 81, 234, 200, 72, 171, 242, 42, 104, 162, 253, 58, 206, 204, 181, 112, 14, 86, 8, 12, 118, 18, 191, 114, 19, 71, 156, 183, 93, 135, 21, 161, 150, 41, 16, 123, 154, 199, 243, 145, 120, 111, 157, 158, 178, 177, 50, 117, 25, 61, 255, 53, 138, 126, 109, 84, 198, 128, 195, 189, 13, 87, 223, 245, 36, 169, 62, 168, 67, 201, 215, 121, 214, 246, 124, 34, 185, 3, 224, 15, 236, 222, 122, 148, 176, 188, 220, 232, 40, 80, 78, 51, 10, 74, 167, 151, 96, 115, 30, 0, 98, 68, 26, 184, 56, 130, 100, 159, 38, 65, 173, 69, 70, 146, 39, 94, 85, 47, 140, 163, 165, 125, 105, 213, 149, 59, 7, 88, 179, 64, 134, 172, 29, 247, 48, 55, 107, 228, 136, 217, 231, 137, 225, 27, 131, 73, 76, 63, 248, 254, 141, 83, 170, 144, 202, 216, 133, 97, 32, 113, 103, 164, 45, 43, 9, 91, 203, 155, 37, 208, 190, 229, 108, 82, 89, 166, 116, 210, 230, 244, 180, 192, 209, 102, 175, 194, 57, 75, 99, 182};
 
 const static uint8_t inPi[256]{165, 45, 50, 143, 14, 48, 56, 192, 84, 230, 158, 57, 85, 126, 82, 145, 100, 3, 87, 90, 28, 96, 7, 24, 33, 114, 168, 209, 41, 198, 164, 63, 224, 39, 141, 12, 130, 234, 174, 180, 154, 99, 73, 229, 66, 228, 21, 183, 200, 6, 112, 157, 65, 117, 25, 201, 170, 252, 77, 191, 42, 115, 132, 213, 195, 175, 43, 134, 167, 177, 178, 91, 70, 211, 159, 253, 212, 15, 156, 47, 155, 67, 239, 217, 121, 182, 83, 127, 193, 240, 35, 231, 37, 94, 181, 30, 162, 223, 166, 254, 172, 34, 249, 226, 74, 188, 53, 202, 238, 120, 5, 107, 81, 225, 89, 163, 242, 113, 86, 17, 106, 137, 148, 101, 140, 187, 119, 60, 123, 40, 171, 210, 49, 222, 196, 95, 204, 207, 118, 44, 184, 216, 46, 54, 219, 105, 179, 20, 149, 190, 98, 161, 59, 22, 102, 233, 92, 108, 109, 173, 55, 97, 75, 185, 227, 186, 241, 160, 133, 131, 218, 71, 197, 176, 51, 250, 150, 111, 110, 194, 246, 80, 255, 93, 169, 142, 23, 27, 151, 125, 236, 88, 247, 31, 251, 124, 9, 13, 122, 103, 69, 135, 220, 232, 79, 29, 78, 4, 235, 248, 243, 62, 61, 189, 138, 136, 221, 205, 11, 19, 152, 2, 147, 128, 144, 208, 36, 52, 203, 237, 244, 206, 153, 16, 68, 64, 146, 58, 1, 38, 18, 26, 72, 104, 245, 129, 139, 199, 214, 32, 10, 8, 0, 76, 215, 116};
@@ -258,24 +259,26 @@ namespace blockKuz{
 		public:
 			void encrypt(uint8_t *block, uint8_t *key);
 			void decrypt(uint8_t *block, uint8_t *key);
+		protected:
+			LSX deffight;
 	};
 
 
 	void EncDec::encrypt(uint8_t *block, uint8_t *key){
-		LSX fight;
+//		LSX fight;
 		generateMatrix(matrix);
 		for(uint8_t i=0; i<5 ; i++){
 			for(uint8_t j=0; j<2; j++){
-				fight.X(key,block,j);
+				deffight.X(key,block,j);
 				if( (i==4) && (j==1)) break;
-				fight.S(block,Pi);
-				fight.L(block,matrix);
+				deffight.S(block,Pi);
+				deffight.L(block,matrix);
 			}
-			fight.generate_key(key,i,matrix);
+			deffight.generate_key(key,i,matrix);
 		}
 	}
 	void EncDec::decrypt(uint8_t *block,uint8_t *key){
-		LSX defend;
+//		LSX defend;
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
 		uint8_t kostil;
@@ -286,78 +289,137 @@ namespace blockKuz{
 			if (i != 0){
 				kostil=i;
 				for(uint8_t l=0;l<kostil;l++){
-					defend.generate_key(cop,l,matrix);
+					deffight.generate_key(cop,l,matrix);
 				}
 			}
 			for(int8_t j=1;j>-1;j--){
 				kostil=j;
 				if (i == 4 && j == 1){
-					defend.X(cop,block,kostil);
+					deffight.X(cop,block,kostil);
 					continue;
 				}
-				defend.L(block,inmatrix);
-				defend.S(block,inPi);
-				defend.X(cop,block,kostil);
+				deffight.L(block,inmatrix);
+				deffight.S(block,inPi);
+				deffight.X(cop,block,kostil);
 			}
 		}
 	}
 //_____________________________________________________________________________________________________________________________________________________________
 };
+//Перепроверить на сокрытие и на оптимизацию.
 namespace CryptoModes{
 
-	template<typename cl>class mode{
+	class mode{
 		public:
-			mode(cl *m);
-
-//			template<typename R>mode(R *f); - вообще собралось и заробило. Почему? А хрен знает
+			mode();
+//			~mode();
+			template <typename destiny> void init(destiny what);
+			virtual void encr()=0;
+			virtual void decr()=0;
 		protected:
-//			template <typename R> void padding(R *a); - заработало, хоть и странно - почему?
-			void padding();
 			uint64_t size;
-			cl *fd;
-			//some modes;
+			int fd;
+			blockKuz::EncDec soldier;
+		public:
+			void inline padding();
+			void inline antipadding();
 	};
-	template <typename cl>  mode::mode(cl *m){
-		fd=m;
+	mode::mode(){
+		fd=0;
+	}
+//	mode::~mode(){
+//	}
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Работает корректно
+	template<typename destiny> void mode::init(destiny what){
 		struct stat st;
-		fstat(*m, &st);
+		fd=what;
+		fstat(fd,&st);
 		size=st.st_size;
-		printf("%li\n",size);
 	}
-	template <> mode<FILE>::mode(FILE *m){
-		fd=m;
-		fseek(m, 0, SEEK_END);
-		size=ftell(m);
-		fseek(m,0,SEEK_SET);
-		printf("%li\n",size);
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Не работает как следует - не дописывает байты.
+	void inline mode::padding(){
+		//добавить ещё дописание результирующего размера
+		std::cout<<"Entered.\n";
+		uint8_t one=0x1;
+		uint8_t zero=0x0;
+		uint8_t dopis=16-size%16;
+		write(fd, &one, 1);
+		fsync(fd);
+		for(uint8_t i=0; i<dopis-1; i++){
+			write(fd, &one, 1);
+			fsync(fd);
+		}
 	}
-	//template <ty
-/*	template <typename R> void mode::padding(R *a){
-		struct stat st;
-		fstat(*a,&st);
-		size=st.st_size;
-		printf("%i\n",size);
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Работа - + . Оптимизация - - .
+	void inline mode::antipadding(){
+		uint8_t check=0x0;
+		for(uint8_t i=1; i<16;i++){
+			lseek(fd,-i,SEEK_END);
+			read(fd, &check,1);
+			printf("%i\n", size);
+			if( (i == 1) && (check == 0x0) ) continue;
+			if ( (i == 1) && (check == 0x1) ){
+				lseek(fd, -(i+1), SEEK_END);
+				read(fd, &check, 1);
+				if( check != 0x1){// - спорный момент, неясно - нужен ли он и всё ему предрасполагающее
+					size -= 1;
+					break;
+				}
+			}
+			if ( check == 0x1 ){
+				size -= i;
+				break;
+			}
+		}
 	}
-	template <> void mode::padding<FILE>(FILE *a){
-		fseek(a,0,SEEK_END);
-		size=ftell(a);
-		printf("%i\n",size);
-		fseek(a,0,SEEK_SET);
-	}*/
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+	class EFB:public mode{
+		public:
+			void encr();
+			void decr(){};
+	};
+	void EFB::encr(){
+		int container=open("encryptedi.bin", O_RDWR, O_CREAT);
+		if( container == -1){
+			perror("open");
+			raise(SIGUSR1);
+		}
+		for(int i=0; i<(size/16);i++){
+		}
+	}		
+
+/*	class EFB:public mode{
+		public:
+			void algorithm(){ };
+			class prin{
+				public:
+					void pr();
+			};
+			prin *cl = new prin;
+	};
+	void EFB::prin::pr(){
+		printf("Hi!\n");
+	};*/ // - это тренировочный момент с классами в классах и наследованием... так, для напоминания пока оставлю
 };
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//В main говнокод. Знаю, что можно быстрее, круче сделать, но оставлю так на случай, если кому-то понадобится разобраться или мне вспомнить.
+void handle(int sig){
+	printf("\nExited with status code - %i.\nBy!\n",sig);
+	exit(EXIT_FAILURE);
+}
 int main(){
-/*	int sl;
+	signal(SIGUSR1, handle);
+	int sl;
 	sl=open("begin.bin", O_RDWR);
-	CryptoModes::mode rm;
-	rm.padding(&sl);
+	CryptoModes::EFB rm;
+	rm.init(sl);
+	//rm.padding();
 	close(sl);
-	FILE *f=fopen("begin.bin", "rb+");
-	rm.padding(f);
-	fclose(f);
+//	rm.cl->pr();// - для тренировочного момента выше использовалось
 	return 0;
-}*/
+}/*
 	FILE *rea=fopen("begin.bin","rb");
 	FILE *wr=fopen("result.bin","wb");
 	if (rea == NULL || wr == NULL) perror("fopen");
@@ -384,4 +446,4 @@ int main(){
 //	reset = NULL;
 	return 0;
 
-}
+}*/
