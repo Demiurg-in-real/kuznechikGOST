@@ -1,5 +1,6 @@
 #include<iostream>
 #include<sys/types.h>
+#include<stdlib.h>//-?
 #include<sys/stat.h>//for fstat
 #include<fcntl.h>//for fd=open
 #include<unistd.h>//for close(fd)
@@ -265,11 +266,13 @@ namespace blockKuz{
 			//Метод сработал.
 		protected:
 			LSX deffight;
+//			uint8_t *cop;
 	};
 
 	void inline EncDec::deinit(){
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
+//		cop = new uint8_t [16];
 	}
 
 	void EncDec::encrypt(uint8_t *block, uint8_t *key){
@@ -284,17 +287,25 @@ namespace blockKuz{
 		}
 	}
 	void EncDec::decrypt(uint8_t *block,uint8_t *key){
+//		printf("entered\n");
 		uint8_t kostil;
 		uint8_t *cop;
-		cop = new uint8_t [16];
+//		printf("who are you?\n");
+		cop = new uint8_t [16]; // - первый раз увидел то, чтобы система выдавала ошибку malloc() memory corruption (fast) ... Я так понимаю она просто не успевала выделять память на такой скорости работы программы.... надо будет разобраться
+		//printf("1\n");
 		for(int8_t i=4;i>-1;i--){
+			//printf("2\n");
 			for(int ref=0;ref<32;ref++) cop[ref]=key[ref];
+			//printf("3\n");
 			if (i != 0){
+//				printf("4\n");
 				kostil=i;
 				for(uint8_t l=0;l<kostil;l++){
 					deffight.generate_key(cop,l,matrix);
 				}
+//				printf("5\n");
 			}
+//			printf("6\n");
 			for(int8_t j=1;j>-1;j--){
 				kostil=j;
 				if (i == 4 && j == 1){
@@ -305,7 +316,11 @@ namespace blockKuz{
 				deffight.S(block,inPi);
 				deffight.X(cop,block,kostil);
 			}
+//			printf("7\n");
 		}
+		delete [] cop;
+		cop = NULL;
+//		printf("what?\n");
 	}
 //_____________________________________________________________________________________________________________________________________________________________
 };
@@ -354,7 +369,7 @@ namespace CryptoModes{
 	}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Проверено. Работает. Оптимизировано.
-	void inline mode::copy(){for(uint8_t i=0;i<32;i++) copykey[i]=key[i];}
+	void inline mode::copy(){for(uint8_t gg=0; gg<32;gg++)copykey[gg]=key[gg];}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Проверено. Работает. Оптимизировано.
 	void mode::padding(){
@@ -420,11 +435,19 @@ namespace CryptoModes{
 			raise(SIGUSR1);
 		}
 		soldier.deinit();
+		block=new uint8_t [16];
 		for(int tr=0; tr<(size/16);tr++){
+			//printf("int\n");
 			copy();
+			//printf("copied\n");
 			block = (ptr+tr*16);
+			//printf("something interesting\n");
 			soldier.decrypt(block,copykey);
+			//printf("zqk\n");
 		}
+		//printf("hera\n");
+		//delete [] block;
+		//block=NULL;
 		antipadding();
 		fsync(fd);
 	}
@@ -439,13 +462,14 @@ void seg(int sig){
 	printf("%s\n",strsignal(sig));
 	exit(-1);
 }
-int main(){
+int main(int argc, char* argv[]){
 	signal(SIGUSR1, handle);
-	signal(SIGSEGV, seg);
+	signal(SIGABRT, seg);
 	int sl;
-	sl=open("kim.bin", O_RDWR);
+	sl=open(argv[1], O_RDWR);
 	CryptoModes::EFB rm(sl); //= new CryptoModes::EFB(sl,1);
 	rm.decr();
+	//rm.decr();
 	close(sl);
 //	rm.cl->pr();// - для тренировочного момента выше использовалось
 	return 0;
