@@ -260,19 +260,25 @@ namespace blockKuz{
 	class EncDec{
 		public:
 			void encrypt(uint8_t *block, uint8_t *key);
+			~EncDec();
 			void decrypt(uint8_t *block, uint8_t *key);
 			void inline eninit(){generateMatrix(matrix);};
 			void inline deinit();// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
 			//Метод сработал.
 		protected:
 			LSX deffight;
-//			uint8_t *cop;
+			uint8_t *cop;
 	};
+
+	EncDec::~EncDec(){
+//		delete []cop;
+//		cop=NULL; // - Надо адаптировать
+	}
 
 	void inline EncDec::deinit(){
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
-//		cop = new uint8_t [16];
+		cop = new uint8_t [16];
 	}
 
 	void EncDec::encrypt(uint8_t *block, uint8_t *key){
@@ -289,9 +295,9 @@ namespace blockKuz{
 	void EncDec::decrypt(uint8_t *block,uint8_t *key){
 //		printf("entered\n");
 		uint8_t kostil;
-		uint8_t *cop;
+//		uint8_t *cop;
 //		printf("who are you?\n");
-		cop = new uint8_t [16]; // - первый раз увидел то, чтобы система выдавала ошибку malloc() memory corruption (fast) ... Я так понимаю она просто не успевала выделять память на такой скорости работы программы.... надо будет разобраться
+//		cop = new uint8_t [16]; // - первый раз увидел то, чтобы система выдавала ошибку malloc() memory corruption (fast) ... Я так понимаю она просто не успевала выделять память на такой скорости работы программы.... надо будет разобраться
 		//printf("1\n");
 		for(int8_t i=4;i>-1;i--){
 			//printf("2\n");
@@ -318,8 +324,8 @@ namespace blockKuz{
 			}
 //			printf("7\n");
 		}
-		delete [] cop;
-		cop = NULL;
+//		delete [] cop;
+//		cop = NULL;
 //		printf("what?\n");
 	}
 //_____________________________________________________________________________________________________________________________________________________________
