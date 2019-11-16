@@ -260,14 +260,19 @@ namespace blockKuz{
 		public:
 			void encrypt(uint8_t *block, uint8_t *key);
 			void decrypt(uint8_t *block, uint8_t *key);
+			void inline eninit(){generateMatrix(matrix);};
+			void inline deinit();// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
+			//Метод сработал.
 		protected:
 			LSX deffight;
 	};
 
+	void inline EncDec::deinit(){
+		generateMatrix(matrix);
+		generateMatrix(inmatrix);
+	}
 
 	void EncDec::encrypt(uint8_t *block, uint8_t *key){
-//		LSX fight;
-		generateMatrix(matrix);
 		for(uint8_t i=0; i<5 ; i++){
 			for(uint8_t j=0; j<2; j++){
 				deffight.X(key,block,j);
@@ -279,9 +284,6 @@ namespace blockKuz{
 		}
 	}
 	void EncDec::decrypt(uint8_t *block,uint8_t *key){
-//		LSX defend;
-		generateMatrix(matrix);
-		generateMatrix(inmatrix);
 		uint8_t kostil;
 		uint8_t *cop;
 		cop = new uint8_t [16];
@@ -334,70 +336,57 @@ namespace CryptoModes{
 		fd=from;
 		fstat(fd,&st);
 		size=st.st_size;
-		ptr=(uint8_t*)mmap(NULL, st.st_size, PROT_READ,MAP_PRIVATE, fd,0);
-		block = new uint8_t [16];
+		ptr=(uint8_t*)mmap(NULL, st.st_size, PROT_READ | PROT_WRITE,MAP_SHARED, fd,0);
+		//block = new uint8_t [16];
 		key = new uint8_t [32];
 		copykey = new uint8_t [32];
 		int check = open("key.bin", O_RDONLY);
-		while(read(check,key,32) != 32);
+		while(read(check,key,32) != 32);//Проверка, что ключ точно считался... точнее вынуждаю прогу хотя бы раз его считать ПОЛНОСТЬЮ и ПРАВИЛЬНО!
 		printf("Hi!\n");
 		close(check);
 	}
 	mode::~mode(){
 		munmap(ptr,size);
-		delete [] block;
+		//delete [] block;
 		delete [] key;
 		delete [] copykey;
 		std::cout<<"Очищено!";
 	}
-	void inline mode::copy(){
-		for(uint8_t i=0;i<32;i++) {
-			copykey[i]=key[i];
-			printf("%2x ", copykey[i]);
-		}
-		printf("\n");
-	}// надо бы будет сократить код...
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Всё работает. Шик!
+//Проверено. Работает. Оптимизировано.
+	void inline mode::copy(){for(uint8_t i=0;i<32;i++) copykey[i]=key[i];}
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Проверено. Работает. Оптимизировано.
 	void mode::padding(){
-		//добавить ещё дописание результирующего размера
 		if( (size%16) != 0){
-			std::cout<<"Entered.\n";
 			uint8_t one=0x1;
 			uint8_t zero=0x0;
 			uint8_t dopis=16-size%16;
-			printf("%i - in padding\n", fd);
 			lseek(fd, 0,SEEK_END);
 			write(fd, &one, 1);
-			fsync(fd);
 			for(uint8_t i=0; i<dopis-1; i++){
-				printf("%i - writeen\n",write(fd, &zero, 1));
-				fsync(fd);
-//			fsync(fd);
+				write(fd, &zero, 1);
 			}
+			fsync(fd);
 			lseek(fd,0,SEEK_SET);
 		}
 	}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Работа - + . Оптимизация - - .
+//Проверено. Работает. Оптимизировано.
 	void inline mode::antipadding(){
 		uint8_t check=0x0;
 		for(uint8_t i=1; i<16;i++){
 			lseek(fd,-i,SEEK_END);
 			read(fd, &check,1);
-			printf("%i\n", size);
-			if( (i == 1) && (check == 0x0) ) continue;
-			if ( (i == 1) && (check == 0x1) ){
-				lseek(fd, -(i+1), SEEK_END);
-				read(fd, &check, 1);
-				if( check != 0x1){// - спорный момент, неясно - нужен ли он и всё ему предрасполагающее
-					size -= 1;
+			if( (check>0x1) ) {
+				if( i!= 1) printf("Wrong padding.\nThere are some troubles with it.\nThere may be information loss.\n");
+				break;
+			}
+			else{
+				if( check == 0x1 ){
+					size -= i;
 					break;
 				}
-			}
-			if ( check == 0x1 ){
-				size -= i;
-				break;
 			}
 		}
 	}
@@ -405,40 +394,40 @@ namespace CryptoModes{
 	class EFB:public mode{
 		public:
 			void encr();
-			void decr(){};
+			void decr();
 			template<typename kek> EFB(kek hek):mode(hek){};//хороший пример наследования конструкторов)))
 	};
 	void EFB::encr(){
-		container=open("encrypted.bin", O_RDWR, O_CREAT);
+		container=open("encrypted.bin", O_WRONLY, O_CREAT);
 		if( container == -1){
 			perror("open");
 			raise(SIGUSR1);
 		}
-		//here a place for code with padding
-		for(int i=0; i<(size/16);i++){
+		padding();
+		soldier.eninit();
+		for(int tr=0; tr<(size/16);tr++){
 			copy();
-			printf("\n%i - stage\n",size/1j);
-			block = (ptr+i*16);
-			for(int j=0; j<16;j++)printf("%2x ", block[j]);
-			printf("\n");
+			/*for(uint8_t j=0;j<16;j++)*/block = (ptr+tr*16);// проблема с указателем в том, что я в следующей строке передам указатель на "массив" блок, где с ним будут происходить манипуляции, но мне нельзя будет что-то делать по тому адресу, на который он будет ссылаться из-за указаний в отображении и параметрах открытого потока. но так даже лучше - отобразили и там же в памяти зашифровали... хммммммм.....
 			soldier.encrypt(block, copykey);
-			write(container,block,16);
-			fsync(container);
 		}
-	}		
-
-/*	class EFB:public mode{
-		public:
-			void algorithm(){ };
-			class prin{
-				public:
-					void pr();
-			};
-			prin *cl = new prin;
-	};
-	void EFB::prin::pr(){
-		printf("Hi!\n");
-	};*/ // - это тренировочный момент с классами в классах и наследованием... так, для напоминания пока оставлю
+		fsync(fd);
+		printf("sometroubles\n");
+	}
+	void EFB::decr(){
+		container=open("decrypted.bin", O_WRONLY, O_CREAT);
+		if( container == -1){
+			perror("open");
+			raise(SIGUSR1);
+		}
+		soldier.deinit();
+		for(int tr=0; tr<(size/16);tr++){
+			copy();
+			block = (ptr+tr*16);
+			soldier.decrypt(block,copykey);
+		}
+		antipadding();
+		fsync(fd);
+	}
 };
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 void handle(int sig){
@@ -454,11 +443,9 @@ int main(){
 	signal(SIGUSR1, handle);
 	signal(SIGSEGV, seg);
 	int sl;
-	sl=open("begin.bin", O_RDWR);
-	printf("%i - in main\n", sl);
+	sl=open("kim.bin", O_RDWR);
 	CryptoModes::EFB rm(sl); //= new CryptoModes::EFB(sl,1);
-	rm.encr();
-//	rm.padding();
+	rm.decr();
 	close(sl);
 //	rm.cl->pr();// - для тренировочного момента выше использовалось
 	return 0;
