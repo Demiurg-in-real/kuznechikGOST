@@ -268,16 +268,18 @@ namespace blockKuz{
 		protected:
 			LSX deffight;
 			uint8_t *cop;
+			uint8_t signal=0x0;
 	};
 
 	EncDec::~EncDec(){
-//		delete []cop;
-//		cop=NULL; // - Надо адаптировать
+		if (signal == 0x1) delete []cop;
+		cop=NULL; // - Надо адаптировать
 	}
 
 	void inline EncDec::deinit(){
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
+		signal=0x1;
 		cop = new uint8_t [16];
 	}
 
@@ -293,25 +295,16 @@ namespace blockKuz{
 		}
 	}
 	void EncDec::decrypt(uint8_t *block,uint8_t *key){
-//		printf("entered\n");
 		uint8_t kostil;
-//		uint8_t *cop;
-//		printf("who are you?\n");
 //		cop = new uint8_t [16]; // - первый раз увидел то, чтобы система выдавала ошибку malloc() memory corruption (fast) ... Я так понимаю она просто не успевала выделять память на такой скорости работы программы.... надо будет разобраться
-		//printf("1\n");
 		for(int8_t i=4;i>-1;i--){
-			//printf("2\n");
 			for(int ref=0;ref<32;ref++) cop[ref]=key[ref];
-			//printf("3\n");
 			if (i != 0){
-//				printf("4\n");
 				kostil=i;
 				for(uint8_t l=0;l<kostil;l++){
 					deffight.generate_key(cop,l,matrix);
 				}
-//				printf("5\n");
 			}
-//			printf("6\n");
 			for(int8_t j=1;j>-1;j--){
 				kostil=j;
 				if (i == 4 && j == 1){
@@ -322,11 +315,7 @@ namespace blockKuz{
 				deffight.S(block,inPi);
 				deffight.X(cop,block,kostil);
 			}
-//			printf("7\n");
 		}
-//		delete [] cop;
-//		cop = NULL;
-//		printf("what?\n");
 	}
 //_____________________________________________________________________________________________________________________________________________________________
 };
@@ -343,9 +332,8 @@ namespace CryptoModes{
 			uint8_t *block;
 			uint8_t *key;
 			uint8_t *copykey;
-			uint64_t size;
+//			uint64_t size;
 			uint64_t fd;
-			uint64_t container;
 			uint8_t *ptr;
 			struct stat st;//ни наю, надо ли сюда это впихивать... или в конструкторе оставить...
 			blockKuz::EncDec soldier;
@@ -356,9 +344,8 @@ namespace CryptoModes{
 	template <typename railway>mode::mode(railway from){
 		fd=from;
 		fstat(fd,&st);
-		size=st.st_size;
+//		size=st.st_size;
 		ptr=(uint8_t*)mmap(NULL, st.st_size, PROT_READ | PROT_WRITE,MAP_SHARED, fd,0);
-		//block = new uint8_t [16];
 		key = new uint8_t [32];
 		copykey = new uint8_t [32];
 		int check = open("key.bin", O_RDONLY);
@@ -367,10 +354,12 @@ namespace CryptoModes{
 		close(check);
 	}
 	mode::~mode(){
-		munmap(ptr,size);
-		//delete [] block;
+		munmap(ptr,st.st_size);
 		delete [] key;
 		delete [] copykey;
+		block = NULL;
+		key = NULL;
+		copykey = NULL;
 		std::cout<<"Очищено!";
 	}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -379,16 +368,17 @@ namespace CryptoModes{
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Проверено. Работает. Оптимизировано.
 	void mode::padding(){
-		if( (size%16) != 0){
+		if( (st.st_size%16) != 0){
 			uint8_t one=0x1;
 			uint8_t zero=0x0;
-			uint8_t dopis=16-size%16;
+			uint8_t dopis=16-st.st_size%16;
 			lseek(fd, 0,SEEK_END);
 			write(fd, &one, 1);
 			for(uint8_t i=0; i<dopis-1; i++){
 				write(fd, &zero, 1);
 			}
 			fsync(fd);
+			st.st_size+=dopis;
 			lseek(fd,0,SEEK_SET);
 		}
 	}
@@ -405,13 +395,14 @@ namespace CryptoModes{
 			}
 			else{
 				if( check == 0x1 ){
-					size -= i;
+					st.st_size -= i;
 					break;
 				}
 			}
 		}
 	}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Работает корректно.
 	class EFB:public mode{
 		public:
 			void encr();
@@ -419,91 +410,163 @@ namespace CryptoModes{
 			template<typename kek> EFB(kek hek):mode(hek){};//хороший пример наследования конструкторов)))
 	};
 	void EFB::encr(){
-		container=open("encrypted.bin", O_WRONLY, O_CREAT);
-		if( container == -1){
-			perror("open");
-			raise(SIGUSR1);
-		}
 		padding();
 		soldier.eninit();
-		for(int tr=0; tr<(size/16);tr++){
+		for(int tr=0; tr<(st.st_size/16);tr++){
 			copy();
 			/*for(uint8_t j=0;j<16;j++)*/block = (ptr+tr*16);// проблема с указателем в том, что я в следующей строке передам указатель на "массив" блок, где с ним будут происходить манипуляции, но мне нельзя будет что-то делать по тому адресу, на который он будет ссылаться из-за указаний в отображении и параметрах открытого потока. но так даже лучше - отобразили и там же в памяти зашифровали... хммммммм.....
 			soldier.encrypt(block, copykey);
 		}
 		fsync(fd);
-		printf("sometroubles\n");
 	}
 	void EFB::decr(){
-		container=open("decrypted.bin", O_WRONLY, O_CREAT);
-		if( container == -1){
-			perror("open");
-			raise(SIGUSR1);
-		}
 		soldier.deinit();
-		block=new uint8_t [16];
-		for(int tr=0; tr<(size/16);tr++){
-			//printf("int\n");
+		//block=new uint8_t [16];
+		for(int tr=0; tr<(st.st_size/16);tr++){
 			copy();
-			//printf("copied\n");
 			block = (ptr+tr*16);
-			//printf("something interesting\n");
 			soldier.decrypt(block,copykey);
-			//printf("zqk\n");
 		}
-		//printf("hera\n");
-		//delete [] block;
-		//block=NULL;
 		antipadding();
 		fsync(fd);
 	}
-};
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-void handle(int sig){
-	printf("\nExited with status code - %i.\nBy!\n",sig);
-	exit(EXIT_FAILURE);
-}
+	class CTR:public mode{
+		public:
+			void encr();
+			void decr(){};
+			template <typename heh> CTR(heh hek):mode(hek){
+				int ini = open ("vect.bin",O_RDONLY);
+				read(ini,vec,8);
+				close(ini);
+				for(uint8_t i=8;i<16;i++) vec[i]=0x0;
+			}
+		protected:
+			uint8_t vec[16];
+			uint8_t nvec[16];
+			uint64_t swp=-1;
+			void copyvect();
+			uint64_t hm; // just for size. Очередной костыль на ниже...
+	};
+//-------------------------------------------------------------------
+//Костыльная хрень. Надо перебрать. Без хаков - некрасиво...
+	void CTR::copyvect(){
+		uint8_t kostil=15;
+		swp++;
+		for (uint8_t i=0; i<8;i++){
+			vec[kostil]=*((uint8_t*)(&swp)+i);
+			kostil--;
+		}
+		for (uint8_t i=0; i<16;i++)nvec[i]=vec[i];
+	}
+//-------------------------------------------------------------------
+//Работает, но вроде с костылями....
+	void CTR::encr(){//this funcion is just for encrypt and decrypt.
+		soldier.eninit();
+		uint64_t size=0x0;
+		hm=st.st_size;
+		if((st.st_size%16) != 0) st.st_size+=(st.st_size%16);
+		std::cout<<st.st_size<<std::endl;
+		for(uint64_t i=0; i<(st.st_size/16); i++){
+			copyvect();
+			copy();
+			soldier.encrypt(nvec,copykey);
+			for(uint8_t g=0;g<16;g++){
+				if (size == st.st_size) return;
+				*(ptr+size)^=nvec[g];
+				size++;
+			}
+		}
+	}
+//	void CTR::decr(){
+//		soldier.deinit();
+//		for(uint64_t i=0; i<(
+//---------------------------------------------------------------------
+};
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+/*	class CTR:public mode{
+		public:
+			void encr();
+			void decr(){};
+			template<typename heh> CTR(heh hek):mode(hek){
+				int ini=open("vect.bin",O_RDONLY);
+				printf("1\n");
+				read(ini,vec,8);
+				for(int i=0; i<8; i++)printf("%2x-",vec[i]);
+				printf("\n");
+				close(ini);
+				for(uint8_t i=8;i<16;i++)vec[i]=0x0;
+				resVec = new uint8_t [16];
+			};
+			~CTR();
+		protected:
+			void remadeVect();
+			void inline specVect();
+			uint8_t *spec;
+			uint8_t *resVec;
+//			struct initVect{
+//				uint8_t smth[8];
+//				uint64_t hi;
+//			}__attribute__((packed));
+			uint8_t vec[16];
+	};
+	CTR::~CTR(){
+		delete [] spec;
+		delete [] resVec;
+		spec=NULL;
+		//vec=NULL;
+	}
+	void CTR::remadeVect(){
+		*((__uint128_t*)(resVec))=*((__uint128_t*)(&vec));
+		uint8_t count=15;
+		for(uint8_t i=8; i<15;i++){
+			uint8_t swap=resVec[count];
+			resVec[count]=resVec[i];
+			resVec[i]=swap;
+			count--;
+		}
+		soldier.encrypt(resVec,copykey);
+		((uint64_t*)(&vec))[1]+=1;
+	}
+	void inline CTR::specVect(){
+		spec = new uint8_t [16];
+		for(uint8_t i=0; i<16;i++){
+			if (i<(16-st.st_size%16))spec[i]=*((uint8_t*)(ptr+st.st_size-16+i));
+			else spec[i]=0x0;
+		}
+	}
+	void CTR::encr(){
+		soldier.eninit();
+		for(int tr=0; tr<(st.st_size/16 - 1); tr++){
+			copy();
+			remadeVect();
+			//for(int i=0; i<16;i++)printf("%2x ",resVec[i]);
+			printf("\n");
+			soldier.encrypt(resVec,copykey);
+			//for(int i=0; i<16; i++)printf("%2x ", resVec[i]);
+			printf("\n");
+			block = (ptr+tr*16);
+			for(uint8_t i=0;i<16;i++)*((uint8_t*)block+i)^=*(resVec+i);
+
+		}
+		copy();
+		specVect();
+		soldier.encrypt(spec,copykey);
+		for(uint8_t i=0; i<(16-st.st_size%16); i++)*(ptr+st.st_size-16+i)=spec[i];
+	}*/
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 void seg(int sig){
 	perror("mmap");
 	printf("%s\n",strsignal(sig));
 	exit(-1);
 }
 int main(int argc, char* argv[]){
-	signal(SIGUSR1, handle);
 	signal(SIGABRT, seg);
 	int sl;
 	sl=open(argv[1], O_RDWR);
-	CryptoModes::EFB rm(sl); //= new CryptoModes::EFB(sl,1);
-	rm.decr();
-	//rm.decr();
+	CryptoModes::CTR rm(sl);
+	rm.encr();
 	close(sl);
-//	rm.cl->pr();// - для тренировочного момента выше использовалось
 	return 0;
-}/*
-	FILE *rea=fopen("begin.bin","rb");
-	FILE *wr=fopen("result.bin","wb");
-	if (rea == NULL || wr == NULL) perror("fopen");
-	uint8_t *block;
-	uint8_t *key;
-	key = new uint8_t [32];
-	block = new uint8_t [16];
-	fread(block,sizeof(uint8_t),16,rea);
-	fread(key,sizeof(uint8_t),32,rea);	
-//	uint8_t *reset;
-//	reset = new uint8_t [32];
-//	for (int i=0;i<32;i++) reset[i]=key[i];
-	blockKuz::EncDec tir;
-	tir.encrypt(block,key);
-	fwrite(block,sizeof(uint8_t),16,wr);
-	fwrite(key,sizeof(uint8_t),32,wr);
-	fclose(wr);
-	fclose(rea);
-	delete [] block;
-	block = NULL;
-	delete [] key;
-	key = NULL;
-//	delete [] reset;
-//	reset = NULL;
-	return 0;
-
-}*/
+}
