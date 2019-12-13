@@ -446,7 +446,7 @@ namespace CryptoModes{
 			uint8_t nvec[16];
 			uint64_t swp=-1;
 			void copyvect();
-			uint64_t hm; // just for size. Очередной костыль на ниже...
+			uint64_t hm;	// just for size. Очередной костыль на ниже...
 	};
 //-------------------------------------------------------------------
 //Костыльная хрень. Надо перебрать. Без хаков - некрасиво...
@@ -463,8 +463,7 @@ namespace CryptoModes{
 //Работает, но вроде с костылями....
 	void CTR::encr(){//this funcion is just for encrypt and decrypt.
 		soldier.eninit();
-		uint64_t size=0x0;
-		hm=st.st_size;
+		uint64_t size=0x0,end;
 		if((st.st_size%16) != 0) st.st_size+=(st.st_size%16);
 		std::cout<<st.st_size<<std::endl;
 		for(uint64_t i=0; i<(st.st_size/16); i++){
@@ -478,6 +477,49 @@ namespace CryptoModes{
 			}
 		}
 	}
+//--------------------------------------------------------------------
+//Режим гаммирования с обратной связью по выходу
+	class OFB:public mode{
+		public:
+			void encr();
+			void decr(){};
+			template<typename heh> OFB(heh hek):mode(hek){
+				int cel=open("posil.bin",O_RDONLY);
+				read(cel,synk,32);
+				close(cel);
+				for (uint8_t i=0;i<16;i++) blok[i]=synk[i];
+			}
+		protected:
+			uint8_t synk[32];
+			uint8_t blok[16];
+			void swap(){};
+	};
+//	void OFB::swap()
+	void OFB::encr(){
+		uint64_t size=0,end;
+		if((st.st_size%16) !=0) end=((st.st_size+st.st_size%16)/16);
+		else end=st.st_size/16;
+		printf("%i\n",end);
+		soldier.eninit();
+		for(uint64_t i=0;i<end;i++){
+			copy();
+			soldier.encrypt((synk+(i%2)*16),copykey);
+			for(int j=0;j<16;j++)printf("%2x ",synk[j+(i%2)*16]);
+			std::cout<<std::endl<<std::endl;
+			for(uint8_t kl=0;kl<16;kl++){
+				if(size == st.st_size) return;
+				*(ptr+i*16+kl)^=synk[kl+(i%2)*16];
+				size++;
+			}
+		}
+	}
+
+//Режим простой замены с зацеплением
+	class CBC{};
+//режим гаммирования с обратной связью по шифротексту
+	class CFB{};
+//Режим выработки имитовствки
+	class MAC{};
 //	void CTR::decr(){
 //		soldier.deinit();
 //		for(uint64_t i=0; i<(
@@ -556,16 +598,21 @@ namespace CryptoModes{
 		for(uint8_t i=0; i<(16-st.st_size%16); i++)*(ptr+st.st_size-16+i)=spec[i];
 	}*/
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-void seg(int sig){
+void ma(int sig){
 	perror("mmap");
 	printf("%s\n",strsignal(sig));
 	exit(-1);
 }
+void seg(int sig){
+	printf("by!\n");
+	exit(-1);
+}
 int main(int argc, char* argv[]){
-	signal(SIGABRT, seg);
+	signal(SIGABRT, ma);
+	signal(SIGTERM,seg);
 	int sl;
 	sl=open(argv[1], O_RDWR);
-	CryptoModes::CTR rm(sl);
+	CryptoModes::OFB rm(sl);
 	rm.encr();
 	close(sl);
 	return 0;

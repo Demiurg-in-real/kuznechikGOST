@@ -1,25 +1,27 @@
 #include<stdio.h>
 #include<unistd.h>
-#include<inttypes.h>
-int main(int argc,char* argv[]){
-	char key[10];
-	char strok[10];
-	char xor[10];
-	FILE *ptr=fopen(argv[1],"rb");
-	if (ptr == NULL){
-		perror("fopen");
-		return 0;
-	}
-	fread(key,sizeof(char),9,ptr);
-	fread(strok,sizeof(char),9,ptr);
-	printf("%s\n",key);
-	for(int i=0;i<10;i++)printf("%2x ",key[i]);
-	printf("\n%s\n",strok);
-	for(int i=0;i<10;i++) printf("%2x ",strok[i]);
-	printf("\n\n");
-	for(int i=0;i<10;i++){
-		xor[i]=key[i] ^ strok[i];
-		printf("%2x ",xor[i]);
-	}
+#include<stdint.h>
+#include<sys/stat.h>
+#include<sys/mman.h>
+#include<fcntl.h>
+#include<math.h>
+void maiN(int l){
+	struct stat st;
+	fstat(l, &st);
+	uint8_t *ptr;
+	uint8_t block[4];
+//	block = new uint8_t [4];
+	ptr=(uint8_t*)mmap(NULL,st.st_size, PROT_READ | PROT_WRITE,MAP_PRIVATE, l,0);
+	if(ptr == NULL) perror("mmap");
+//	block = ((ptr+0));
+	for(int j=0; j<st.st_size;j++)printf("%2x\n", block[j]);
+	fsync(l);
+	printf("%i - %i\n", O_RDWR, st.st_mode);
+	munmap(ptr, st.st_size);
+}
+int main(){
+	long double res=log2l(12345);
+	printf("%Lf\n", res);	
 	return 0;
 }
+

@@ -1,23 +1,16 @@
-#include<cstdio>
-class typ{
-	public:
-		void pri(char l){
-			printf("Hi, %c!",l);
-		}
-};
-class viz{
-	public:
-		void get(char k){
-			typ r;
-			r.pri(k);
-		}
-		viz(char l){printf("I'm created! - %c\n", l);}
-};
+#include<stdio.h>
+#include<unistd.h>
+#include<stdint.h>
+#include<sys/stat.h>
+#include<sys/mman.h>
+#include<fcntl.h>
+struct he{
+	uint8_t tes[32];
+}__attribute__((packed));
 int main(){
-	char c=0x61;
-	viz l(c);
-	l.get(c);
-	char &e=c;
-
+	uint8_t c[4];
+	*((uint16_t*)((uint16_t*)(c)))=0x1234;
+	printf("%2x %2x", c[0],c[1]);
 	return 0;
 }
+
