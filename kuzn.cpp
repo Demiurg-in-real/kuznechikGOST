@@ -537,6 +537,7 @@ namespace CryptoModes{
 			soldier.encrypt((ptr+i*16),copykey);
 		}
 		for(uint64_t i=2; i<(st.st_size/16); i++){
+			copy();
 			for(l=0;l<16;l++) *(ptr+i*16+l)^=*(ptr+(i-2)*16+l);
 			soldier.encrypt((ptr+i*16),copykey);
 		}
@@ -550,10 +551,13 @@ namespace CryptoModes{
 			for(l=0;l<16;l++) old[l]=*(ptr+i*16+l);
 			soldier.decrypt((ptr+i*16),copykey);
 			for(l=0;l<16;l++){
+				printf("%x ", vector[l+(i%2)*16]);
 				*(ptr+i*16+l)^=vector[l+(i%2)*16];
 				vector[l+(i%2)*16]=old[l];
 			}
+			std::cout<<std::endl<<std::endl;
 		}
+		antipadding();
 	}
 
 //режим гаммирования с обратной связью по шифротексту
