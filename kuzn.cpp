@@ -492,9 +492,7 @@ namespace CryptoModes{
 		protected:
 			uint8_t synk[32];
 			uint8_t blok[16];
-			void swap(){};
 	};
-//	void OFB::swap()
 	void OFB::encr(){
 		uint64_t size=0,end;
 		if((st.st_size%16) !=0) end=((st.st_size+st.st_size%16)/16);
@@ -515,7 +513,49 @@ namespace CryptoModes{
 	}
 
 //Режим простой замены с зацеплением
-	class CBC{};
+	class CBC:public mode{
+		public:
+			template<typename heh>CBC(heh hek):mode(hek){
+				int rid=open("posil.bin", O_RDONLY);
+				read(rid,vector,32);
+				close(rid);
+			}
+			void encr();
+			void decr();
+		protected:
+			uint8_t vector[32];
+			uint8_t old[16];
+	};
+
+	void CBC::encr(){
+		uint8_t l=0;
+		soldier.eninit();
+		padding();
+		for(uint8_t i=0;i<2;i++){
+			copy();
+			for(l=0;l<16;l++)*(ptr+i*16+l)^=vector[l+i*16];
+			soldier.encrypt((ptr+i*16),copykey);
+		}
+		for(uint64_t i=2; i<(st.st_size/16); i++){
+			for(l=0;l<16;l++) *(ptr+i*16+l)^=*(ptr+(i-2)*16+l);
+			soldier.encrypt((ptr+i*16),copykey);
+		}
+	}
+
+	void CBC::decr(){
+		uint8_t l;
+		soldier.deinit();
+		for(uint64_t i=0; i<(st.st_size/16);i++){
+			copy();
+			for(l=0;l<16;l++) old[l]=*(ptr+i*16+l);
+			soldier.decrypt((ptr+i*16),copykey);
+			for(l=0;l<16;l++){
+				*(ptr+i*16+l)^=vector[l+(i%2)*16];
+				vector[l+(i%2)*16]=old[l];
+			}
+		}
+	}
+
 //режим гаммирования с обратной связью по шифротексту
 	class CFB{};
 //Режим выработки имитовствки
@@ -612,8 +652,8 @@ int main(int argc, char* argv[]){
 	signal(SIGTERM,seg);
 	int sl;
 	sl=open(argv[1], O_RDWR);
-	CryptoModes::OFB rm(sl);
-	rm.encr();
+	CryptoModes::CBC rm(sl);
+	rm.decr();
 	close(sl);
 	return 0;
 }
