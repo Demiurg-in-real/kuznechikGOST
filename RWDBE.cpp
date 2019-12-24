@@ -293,9 +293,76 @@ namespace blockKuz{
 		printf("\nThe end of generating key.\n");
 	}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверенная функция.			
+//Проверенная функция.	
 		
 	class EncDec{
+		public:
+			EncDec(uint8_t *key);
+			void encrypt(uint8_t *block);
+			~EncDec();
+			void decrypt(uint8_t *block);
+			void inline eninit();
+			void inline deinit();// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
+			//Метод сработал.
+		protected:
+			LSX deffight;
+			uint8_t **cop;
+			uint8_t kos;
+	};
+
+	EncDec::EncDec(uint8_t *key){
+		deinit();//Придумать, как убрать...
+		cop = new uint8_t* [5];
+		for(uint8_t i=0; i <5; i++){
+			cop[i] = new uint8_t[32];
+			for(uint8_t y=0; y<32;y++)cop[i][y]=key[y];
+			for(uint8_t j=0; j<i; j++)deffight.generate_key(cop[i],j,matrix);
+		}
+	}
+
+	EncDec::~EncDec(){
+		for(uint8_t i = 0; i<5; i++) delete [] cop[i];
+		delete []cop;
+		cop=NULL; // - Надо адаптировать
+	}
+	
+	void inline EncDec::eninit(){
+		generateMatrix(matrix);
+	}
+
+
+	void inline EncDec::deinit(){
+		generateMatrix(matrix);
+		generateMatrix(inmatrix);
+	}
+
+	void EncDec::encrypt(uint8_t *block){
+		for(uint8_t i=0; i<5 ; i++){
+			for(uint8_t j=0; j<2; j++){
+				deffight.X(cop[i],block,j);
+				if( (i==4) && (j==1)) break;
+				deffight.S(block,Pi);
+				deffight.L(block,matrix);
+			}
+		}
+	}
+
+	void EncDec::decrypt(uint8_t *block){
+		for(int8_t i=4; i>-1;i--){
+			for(int8_t y=1;y>-1;y--){
+				kos=y;
+				if (i == 4 && y == 1){
+					deffight.X(cop[i],block,kos);
+					continue;
+				}
+				deffight.L(block,inmatrix);
+				deffight.S(block,inPi);
+				deffight.X(cop[i],block,kos);
+			}
+		}
+	}		
+		
+	/*class EncDec{
 		public:
 			void encrypt(uint8_t *block, uint8_t *key);
 			void decrypt(uint8_t *block, uint8_t *key);
@@ -333,7 +400,54 @@ namespace blockKuz{
 		for(int i=0;i<16;i++) printf("%2x",block[i]);
 		std::cout<<"\n__________\n";
 	}
-	void EncDec::decrypt(uint8_t *block,uint8_t *key){
+	void EncDec::decrypt(uint8_t *block, uint8_t *key){
+		LSX defend;
+		generateMatrix(matrix);
+		generateMatrix(inmatrix);
+		printf("\nThe begin of decription block.\nLet's see the table mattrix:\n");
+		for(int i=0;i<16;i++){
+			for(int j=0;j<16;j++){
+				printf("%i ",inmatrix[i][j]);
+			}
+			printf("\n");
+		}
+		printf("\nThe block:\n");
+		for(int i=0;i<16;i++)printf("%2x",block[i]);
+		printf("\nThe key.\n");
+		for(int i=0;i<32;i++){
+			printf("%2x",key[i]);
+			if(i == 15) printf(" , ");
+		}
+		printf("\nEnd of key.\n");
+		uint8_t **cop;
+		uint8_t kos;
+		cop = new uint8_t* [5];
+		for(uint8_t i=0; i <5; i++){
+			cop[i] = new uint8_t[32];
+			for(uint8_t y=0; y<32;y++)cop[i][y]=key[y];
+			for(uint8_t j=0; j<i; j++)defend.generate_key(cop[i],j,matrix);
+		}
+		for(int8_t i=4; i>-1;i--){
+			for(int8_t y=1;y>-1;y--){
+				kos=y;
+				printf("The key\n");
+				for(uint8_t h=0; h<32;h++) printf("%2x ", cop[i][h]);
+				printf("\n");
+				if (i == 4 && y == 1){
+					defend.X(cop[i],block,kos);
+					continue;
+				}
+				defend.L(block,inmatrix);
+				defend.S(block,inPi);
+				defend.X(cop[i],block,kos);
+			}
+		}
+		printf("\nThe result:\n");
+		for(int i=0; i<16;i++)printf("%2x ", block[i]);
+	}*/
+
+
+	/*void EncDec::decrypt(uint8_t *block,uint8_t *key){
 		LSX defend;
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
@@ -376,14 +490,14 @@ namespace blockKuz{
 			}
 		}
 		for(int i=0;i<16;i++)printf("%2x",block[i]);
-	}
+	}*/
 //_____________________________________________________________________________________________________________________________________________________________
 };
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //В main говнокод. Знаю, что можно быстрее, круче сделать, но оставлю так на случай, если кому-то понадобится разобраться или мне вспомнить.
 int main(){
-	FILE *rea=fopen("ready.bin","rb");
-	FILE *wr=fopen("result.bin","wb");
+	FILE *rea=fopen("result.bin","rb");
+	FILE *wr=fopen("hack.bin","wb");
 	if (rea == NULL || wr == NULL) perror("fopen");
 	uint8_t *block;
 	uint8_t *key;
@@ -397,9 +511,10 @@ int main(){
 //	uint8_t *reset;
 //	reset = new uint8_t [32];
 //	for (int i=0;i<32;i++) reset[i]=key[i];
-	blockKuz::EncDec tir;
+	blockKuz::EncDec tir/* = new blockKuz::EncDec*/(key);
 	for(int i=0;i<32;i++)printf("%2x",key[i]);
-	tir.decrypt(block,key);
+//	tir.deinit();
+	tir.decrypt(block);
 //	printf("1\n");
 	fwrite(block,sizeof(uint8_t),16,wr);
 	fwrite(key,sizeof(uint8_t),32,wr);

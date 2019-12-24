@@ -259,44 +259,69 @@ namespace blockKuz{
 		
 	class EncDec{
 		public:
-			void encrypt(uint8_t *block, uint8_t *key);
+			EncDec(uint8_t *key);
+			void encrypt(uint8_t *block);
 			~EncDec();
-			void decrypt(uint8_t *block, uint8_t *key);
-			void inline eninit(){generateMatrix(matrix);};
+			void decrypt(uint8_t *block);
+			void inline eninit();
 			void inline deinit();// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
 			//Метод сработал.
 		protected:
 			LSX deffight;
-			uint8_t *cop;
-			uint8_t signal=0x0;
+			uint8_t **cop;
 	};
 
+	EncDec::EncDec(uint8_t *key){
+		cop = new uint8_t* [5];
+		for(uint8_t i=0; i <5; i++){
+			cop[i] = new uint8_t[32];
+			for(uint8_t y=0; y<32;y++)cop[i][y]=key[y];
+			for(uint8_t j=0; j<i; j++)defend.generate_key(cop[i],j,matrix);
+		}
+	}
+
 	EncDec::~EncDec(){
-		if (signal == 0x1) delete []cop;
+		for(uint8_t i = 0; i<5; i++) delete [] cop[i];
+		delete []cop;
 		cop=NULL; // - Надо адаптировать
 	}
+	
+	void inline EncDec::eninit(){
+		generateMatrix(matrix);
+
 
 	void inline EncDec::deinit(){
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
-		signal=0x1;
-		cop = new uint8_t [16];
 	}
 
-	void EncDec::encrypt(uint8_t *block, uint8_t *key){
+	void EncDec::encrypt(uint8_t *block){
 		for(uint8_t i=0; i<5 ; i++){
 			for(uint8_t j=0; j<2; j++){
-				deffight.X(key,block,j);
+				deffight.X(cop[i],block,j);
 				if( (i==4) && (j==1)) break;
 				deffight.S(block,Pi);
 				deffight.L(block,matrix);
 			}
-			deffight.generate_key(key,i,matrix);
 		}
 	}
-	void EncDec::decrypt(uint8_t *block,uint8_t *key){
+
+	void EncDec::decrypt(uint8_t *block){
+		for(int8_t i=4; i>-1;i--){
+			for(int8_t y=1;y>-1;y--){
+				kos=y;
+				if (i == 4 && y == 1){
+					defend.X(cop[i],block,kos);
+					continue;
+				}
+				defend.L(block,inmatrix);
+				defend.S(block,inPi);
+				defend.X(cop[i],block,kos);
+			}
+		}
+	}
+	/*void EncDec::decrypt(uint8_t *block,uint8_t *key){
 		uint8_t kostil;
-//		cop = new uint8_t [16]; // - первый раз увидел то, чтобы система выдавала ошибку malloc() memory corruption (fast) ... Я так понимаю она просто не успевала выделять память на такой скорости работы программы.... надо будет разобраться
 		for(int8_t i=4;i>-1;i--){
 			for(int ref=0;ref<32;ref++) cop[ref]=key[ref];
 			if (i != 0){
@@ -316,7 +341,7 @@ namespace blockKuz{
 				deffight.X(cop,block,kostil);
 			}
 		}
-	}
+	}*/
 //_____________________________________________________________________________________________________________________________________________________________
 };
 //Перепроверить на сокрытие и на оптимизацию.
