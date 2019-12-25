@@ -297,21 +297,20 @@ namespace blockKuz{
 		
 	class EncDec{
 		public:
-			EncDec(uint8_t *key);
 			void encrypt(uint8_t *block);
 			~EncDec();
 			void decrypt(uint8_t *block);
-			void inline eninit();
-			void inline deinit();// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
+			void inline eninit(uint8_t *key);
+			void inline deinit(uint8_t *key);// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
 			//Метод сработал.
 		protected:
 			LSX deffight;
 			uint8_t **cop;
 			uint8_t kos;
+			void makekeys(uint8_t *key);
 	};
 
-	EncDec::EncDec(uint8_t *key){
-		deinit();//Придумать, как убрать...
+	void EncDec::makekeys(uint8_t *key){
 		cop = new uint8_t* [5];
 		for(uint8_t i=0; i <5; i++){
 			cop[i] = new uint8_t[32];
@@ -326,14 +325,16 @@ namespace blockKuz{
 		cop=NULL; // - Надо адаптировать
 	}
 	
-	void inline EncDec::eninit(){
+	void inline EncDec::eninit(uint8_t *key){
 		generateMatrix(matrix);
+		makekeys(key);
 	}
 
 
-	void inline EncDec::deinit(){
+	void inline EncDec::deinit(uint8_t *key){
 		generateMatrix(matrix);
 		generateMatrix(inmatrix);
+		makekeys(key);
 	}
 
 	void EncDec::encrypt(uint8_t *block){
@@ -511,9 +512,9 @@ int main(){
 //	uint8_t *reset;
 //	reset = new uint8_t [32];
 //	for (int i=0;i<32;i++) reset[i]=key[i];
-	blockKuz::EncDec tir/* = new blockKuz::EncDec*/(key);
+	blockKuz::EncDec tir/* = new blockKuz::EncDec*/;
 	for(int i=0;i<32;i++)printf("%2x",key[i]);
-//	tir.deinit();
+	tir.deinit(key);
 	tir.decrypt(block);
 //	printf("1\n");
 	fwrite(block,sizeof(uint8_t),16,wr);
