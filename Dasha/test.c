@@ -10,11 +10,14 @@ int main(){
 	uint64_t heh=0xfedcba34;
 	uint64_t resu = (kek + heh)%0xffffffff;
 	uint32_t res = kek+heh;
-	check(kek);
-	check(heh);
+	uint8_t hehe=19, hehe1=245;
+	uint16_t ruk = hehe+hehe1;
+	check(hehe);
+	check(hehe1);
 	printf("--------------------\n");
-	check(res%0xffffffff);
-	printf("%lu == %u\n", resu,res);
+	check(ruk);
+	printf("%u\n", ruk%256);
+//	printf("%lu == %u\n", resu,res);
 
 	return 0;
 }

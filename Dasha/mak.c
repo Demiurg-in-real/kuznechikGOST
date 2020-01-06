@@ -8,6 +8,7 @@
 #include<string.h>
 #include<stdbool.h>
 #include<dirent.h>
+#include<signal.h>
 const static uint8_t Pi[256] = {252, 238, 221, 17, 207, 110, 49, 22, 251, 196, 250, 218, 35, 197, 4, 77, 233, 119, 240, 219, 147, 46, 153, 186, 23, 54, 241, 187, 20, 205, 95, 193, 249, 24, 101, 90, 226, 92, 239, 33, 129, 28, 60, 66, 139, 1, 142, 79, 5, 132, 2, 174, 227, 106, 143, 160, 6, 11, 237, 152, 127, 212, 211, 31, 235, 52, 44, 81, 234, 200, 72, 171, 242, 42, 104, 162, 253, 58, 206, 204, 181, 112, 14, 86, 8, 12, 118, 18, 191, 114, 19, 71, 156, 183, 93, 135, 21, 161, 150, 41, 16, 123, 154, 199, 243, 145, 120, 111, 157, 158, 178, 177, 50, 117, 25, 61, 255, 53, 138, 126, 109, 84, 198, 128, 195, 189, 13, 87, 223, 245, 36, 169, 62, 168, 67, 201, 215, 121, 214, 246, 124, 34, 185, 3, 224, 15, 236, 222, 122, 148, 176, 188, 220, 232, 40, 80, 78, 51, 10, 74, 167, 151, 96, 115, 30, 0, 98, 68, 26, 184, 56, 130, 100, 159, 38, 65, 173, 69, 70, 146, 39, 94, 85, 47, 140, 163, 165, 125, 105, 213, 149, 59, 7, 88, 179, 64, 134, 172, 29, 247, 48, 55, 107, 228, 136, 217, 231, 137, 225, 27, 131, 73, 76, 63, 248, 254, 141, 83, 170, 144, 202, 216, 133, 97, 32, 113, 103, 164, 45, 43, 9, 91, 203, 155, 37, 208, 190, 229, 108, 82, 89, 166, 116, 210, 230, 244, 180, 192, 209, 102, 175, 194, 57, 75, 99, 182};
 
 const static uint8_t inPi[256] = {165, 45, 50, 143, 14, 48, 56, 192, 84, 230, 158, 57, 85, 126, 82, 145, 100, 3, 87, 90, 28, 96, 7, 24, 33, 114, 168, 209, 41, 198, 164, 63, 224, 39, 141, 12, 130, 234, 174, 180, 154, 99, 73, 229, 66, 228, 21, 183, 200, 6, 112, 157, 65, 117, 25, 201, 170, 252, 77, 191, 42, 115, 132, 213, 195, 175, 43, 134, 167, 177, 178, 91, 70, 211, 159, 253, 212, 15, 156, 47, 155, 67, 239, 217, 121, 182, 83, 127, 193, 240, 35, 231, 37, 94, 181, 30, 162, 223, 166, 254, 172, 34, 249, 226, 74, 188, 53, 202, 238, 120, 5, 107, 81, 225, 89, 163, 242, 113, 86, 17, 106, 137, 148, 101, 140, 187, 119, 60, 123, 40, 171, 210, 49, 222, 196, 95, 204, 207, 118, 44, 184, 216, 46, 54, 219, 105, 179, 20, 149, 190, 98, 161, 59, 22, 102, 233, 92, 108, 109, 173, 55, 97, 75, 185, 227, 186, 241, 160, 133, 131, 218, 71, 197, 176, 51, 250, 150, 111, 110, 194, 246, 80, 255, 93, 169, 142, 23, 27, 151, 125, 236, 88, 247, 31, 251, 124, 9, 13, 122, 103, 69, 135, 220, 232, 79, 29, 78, 4, 235, 248, 243, 62, 61, 189, 138, 136, 221, 205, 11, 19, 152, 2, 147, 128, 144, 208, 36, 52, 203, 237, 244, 206, 153, 16, 68, 64, 146, 58, 1, 38, 18, 26, 72, 104, 245, 129, 139, 199, 214, 32, 10, 8, 0, 76, 215, 116};
@@ -303,18 +304,19 @@ void decrypt(uint8_t *block,uint8_t *key)
 	cop=NULL;
 }
 
-void encr(int fd,int sig)
+void encr(int fd,int sig,uint8_t *key)
 {		
-	uint8_t *key,*copykey;
+	uint8_t *copykey;
 	uint8_t *block;
 	uint8_t synk[32];
 	uint8_t blok[16];
-	key=(uint8_t*)malloc(32);
+//	key=(uint8_t*)malloc(32);
 	copykey=(uint8_t*)malloc(32);
 	block=(uint8_t*)malloc(16);
-	int kuk=open("key.bin",O_RDONLY);
-	read(kuk,key,32);
-	close(kuk);
+	int kuk;
+//	int kuk=open("key.bin",O_RDONLY);
+//	read(kuk,key,32);
+//	close(kuk);
 	uint64_t size=0,end;
 	struct stat st;
 	fstat(fd,&st);
@@ -375,35 +377,143 @@ void encr(int fd,int sig)
 	free(copykey);
 }
 
-uint32_t Crc32(unsigned char *buf, size_t len)
-{
-    uint32_t crc_table[256];
-    uint32_t crc; int i, j;
+uint32_t  rotr(uint32_t cn,int how){
+	return (cn>>how) | (cn<<(32-how));
+}
 
-    for (i = 0; i < 256; i++)
-    {
-        crc = i;
-        for (j = 0; j < 8; j++)
-            crc = crc & 1 ? (crc >> 1) ^ 0xEDB88320UL : crc >> 1;
-
-        crc_table[i] = crc;
-    };
-
-    crc = 0xFFFFFFFFUL;
-
-    while (len--)
-        crc = crc_table[(crc ^ *buf++) & 0xFF] ^ (crc >> 8);
-
-    return crc ^ 0xFFFFFFFFUL;
+void sha256(uint8_t *str,uint8_t *key){
+	uint32_t h0 = 0x6A09E667;
+	uint32_t h1 = 0xBB67AE85;
+	uint32_t h2 = 0x3C6EF372;
+	uint32_t h3 = 0xA54FF53A;
+	uint32_t h4 = 0x510E527F;
+	uint32_t h5 = 0x9B05688C;
+	uint32_t h6 = 0x1F83D9AB;
+	uint32_t h7 = 0x5BE0CD19;
+	uint32_t k[64]={0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+	uint64_t size = strlen(str) - 1;
+	if ( (size%(512/8)) == 0 ){
+		str = realloc(str,size+(512/8));
+		str[size]=0x80;
+		size+=(512/8);
+		uint64_t help=size - 64;
+		*((uint64_t*)(str+size-8))=(size - (512/8))*8;
+		uint8_t swap;
+		for(int x=1,y=8,iter=0;iter<4;iter++,x++,y--){
+			swap=str[size-x];
+			str[size-x]=str[size-y];
+			str[size-y]=swap;
+		}
+	}
+	else{
+		if ( (size%(512/8)) > 0){
+			if ( (64-(size%(512/8))) >= 9){
+				uint8_t r = size % 64;
+				str = realloc(str, size+((512/8) - (size%(512/8))));
+				str[size] = 0x80;
+				uint64_t l = size;
+				size+=((512/8) - (size%(512/8)));
+				*((uint64_t*)(str+size-8))=l*8;
+			uint8_t swap;
+			for(int x=1, y=8,iter=0;iter<4;iter++,x++,y--){
+				swap=str[size-x];
+				str[size-x]=str[size-y];
+				str[size-y]=swap;
+			}
+			}
+			else{
+				if ( (64-(size%(512/8))) < 9){
+					uint64_t diff = 64 -size%(512/8);
+					uint64_t l = size;
+					str = realloc(str, size+diff+(512/8));
+					str[size] = 0x80;
+					size+=(diff+(512/8));
+					*((uint64_t*)(str+size-8))=l*8;
+			uint8_t swap;
+			for(int x=1, y=8,iter=0;iter<4;iter++,x++,y--){
+				swap=str[size-x];
+				str[size-x]=str[size-y];
+				str[size-y]=swap;
+			}
+				}
+			}
+		}
+	}
+	uint32_t w[64];
+	uint32_t a,b,c,d,e,f,g,h;
+	uint32_t e0,ma,t2,e1,ch,t1;
+	for(int iter=0; iter<(size/64); iter++){
+		uint32_t s0, s1, kuk;
+		for(int i = 0; i<16; i++) {
+			for(int j=0; j<4;j++){
+				w[i] = (w[i]<<8)^(str[j+iter*64+i*4]);
+			}
+		}
+		for(int l = 16; l<64; l++){
+			s0 = (rotr(w[l-15],7))^(rotr(w[l-15],18))^(w[l-15]>>3);
+			s1 = (rotr(w[l-2],17))^(rotr(w[l-2],19))^(w[l-2]>>10);
+			w[l] = w[l-16] + s0 + w[l-7] + s1;
+		}
+		a=h0;
+		b=h1;
+		c=h2;
+		d=h3;
+		e=h4;
+		f=h5;
+		g=h6;
+		h=h7;
+		for(int i=0; i<64;i++){
+			e0 = (rotr(a,2))^(rotr(a,13))^(rotr(a,22));
+			ma = (a & b)^(a & c)^(b & c);
+			e1 = (rotr(e,6))^(rotr(e,11))^(rotr(e,25));
+			ch = (e & f)^((~e) & g);
+			t2 = e0 + ma;
+			t1 = h + e1 + ch + k[i] + w[i];
+			
+			h = g;
+			g = f;
+			f = e;
+			e = d + t1;
+			d = c;
+			c = b;
+			b = a;
+			a = t1 + t2;
+		}
+		h0+=a;
+		h1+=b;
+		h2+=c;
+		h3+=d;
+		h4+=e;
+		h5+=f;
+		h6+=g;
+		h7+=h;
+	}
+	uint32_t H[8]={h0,h1,h2,h3,h4,h5,h6,h7};
+	int iter=0;
+	for(int i = 0; i < 8; i++){
+		for(int j = 3; j > -1; j--){
+			key[iter]=((H[i]>>(j*8))&0xff);
+			iter++;
+		}
+	}
+}
+void handler (int sig){
+	printf("%s\n", strerror(sig));
+	exit(-1);
 }
 
 int main(int argc,char* argv[]){
 	generateTable();
 
-	uint8_t pass[256];
-	uint8_t key
+	signal(SIGSEGV, handler);
+
+	uint8_t *pass;
+	uint8_t *key;
+	pass = (uint8_t*)malloc(sizeof(uint8_t)*256);
+	key = (uint8_t*)malloc(sizeof(uint8_t)*32);
 	printf("Please, write a password.\n*NOTE* : no longer than 256 characters\n\n");
-	fgets(pass,256,stdin);
+	fgets(pass,256-1,stdin);	
+	sha256(pass,key);
 
 	int sig = atoi(argv[1]);
 	int kak;
@@ -437,7 +547,7 @@ int main(int argc,char* argv[]){
 				if(scan[vnutri]->d_type==DT_REG)
 				{
 					kak=open(dirname,O_RDWR);
-					encr(kak,sig);
+					encr(kak,sig,key);
 					close(kak);
 				}
 			}
