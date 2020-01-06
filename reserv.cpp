@@ -7,6 +7,12 @@
 #include<signal.h>//for signals)
 #include<string.h>//for strsignal
 #include<sys/mman.h>//for mmap and munmap
+#include<filesystem>//for fs traversal
+#include<openssl/sha.h>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
 const static uint8_t Pi[256] = {252, 238, 221, 17, 207, 110, 49, 22, 251, 196, 250, 218, 35, 197, 4, 77, 233, 119, 240, 219, 147, 46, 153, 186, 23, 54, 241, 187, 20, 205, 95, 193, 249, 24, 101, 90, 226, 92, 239, 33, 129, 28, 60, 66, 139, 1, 142, 79, 5, 132, 2, 174, 227, 106, 143, 160, 6, 11, 237, 152, 127, 212, 211, 31, 235, 52, 44, 81, 234, 200, 72, 171, 242, 42, 104, 162, 253, 58, 206, 204, 181, 112, 14, 86, 8, 12, 118, 18, 191, 114, 19, 71, 156, 183, 93, 135, 21, 161, 150, 41, 16, 123, 154, 199, 243, 145, 120, 111, 157, 158, 178, 177, 50, 117, 25, 61, 255, 53, 138, 126, 109, 84, 198, 128, 195, 189, 13, 87, 223, 245, 36, 169, 62, 168, 67, 201, 215, 121, 214, 246, 124, 34, 185, 3, 224, 15, 236, 222, 122, 148, 176, 188, 220, 232, 40, 80, 78, 51, 10, 74, 167, 151, 96, 115, 30, 0, 98, 68, 26, 184, 56, 130, 100, 159, 38, 65, 173, 69, 70, 146, 39, 94, 85, 47, 140, 163, 165, 125, 105, 213, 149, 59, 7, 88, 179, 64, 134, 172, 29, 247, 48, 55, 107, 228, 136, 217, 231, 137, 225, 27, 131, 73, 76, 63, 248, 254, 141, 83, 170, 144, 202, 216, 133, 97, 32, 113, 103, 164, 45, 43, 9, 91, 203, 155, 37, 208, 190, 229, 108, 82, 89, 166, 116, 210, 230, 244, 180, 192, 209, 102, 175, 194, 57, 75, 99, 182};
 
 const static uint8_t inPi[256]{165, 45, 50, 143, 14, 48, 56, 192, 84, 230, 158, 57, 85, 126, 82, 145, 100, 3, 87, 90, 28, 96, 7, 24, 33, 114, 168, 209, 41, 198, 164, 63, 224, 39, 141, 12, 130, 234, 174, 180, 154, 99, 73, 229, 66, 228, 21, 183, 200, 6, 112, 157, 65, 117, 25, 201, 170, 252, 77, 191, 42, 115, 132, 213, 195, 175, 43, 134, 167, 177, 178, 91, 70, 211, 159, 253, 212, 15, 156, 47, 155, 67, 239, 217, 121, 182, 83, 127, 193, 240, 35, 231, 37, 94, 181, 30, 162, 223, 166, 254, 172, 34, 249, 226, 74, 188, 53, 202, 238, 120, 5, 107, 81, 225, 89, 163, 242, 113, 86, 17, 106, 137, 148, 101, 140, 187, 119, 60, 123, 40, 171, 210, 49, 222, 196, 95, 204, 207, 118, 44, 184, 216, 46, 54, 219, 105, 179, 20, 149, 190, 98, 161, 59, 22, 102, 233, 92, 108, 109, 173, 55, 97, 75, 185, 227, 186, 241, 160, 133, 131, 218, 71, 197, 176, 51, 250, 150, 111, 110, 194, 246, 80, 255, 93, 169, 142, 23, 27, 151, 125, 236, 88, 247, 31, 251, 124, 9, 13, 122, 103, 69, 135, 220, 232, 79, 29, 78, 4, 235, 248, 243, 62, 61, 189, 138, 136, 221, 205, 11, 19, 152, 2, 147, 128, 144, 208, 36, 52, 203, 237, 244, 206, 153, 16, 68, 64, 146, 58, 1, 38, 18, 26, 72, 104, 245, 129, 139, 199, 214, 32, 10, 8, 0, 76, 215, 116};
@@ -380,28 +386,27 @@ namespace CryptoModes{
 			uint8_t *ptr;
 			struct stat st;//ни наю, надо ли сюда это впихивать... или в конструкторе оставить...
 			blockKuz::EncDec soldier;
-//		public:
 			void inline padding();
 			void inline antipadding();
-//			void inline copy();
 	};
 	template <typename railway>mode::mode(railway from){
 		fd=from;
 		fstat(fd,&st);
-//		size=st.st_size;
+		printf("size at the begin - %i\n",st.st_size);
 		ptr=(uint8_t*)mmap(NULL, st.st_size, PROT_READ | PROT_WRITE,MAP_SHARED, fd,0);
+		if(ptr == MAP_FAILED){
+			perror("mmap");
+			exit(-1);
+		}
 		key = new uint8_t [32];
 		copykey = new uint8_t [32];
 		int check = open("key.bin", O_RDONLY);
 		while(read(check,key,32) != 32);//Проверка, что ключ точно считался... точнее вынуждаю прогу хотя бы раз его считать ПОЛНОСТЬЮ и ПРАВИЛЬНО!
-		printf("Hi!\n");
+//		printf("Hi!\n");
 		close(check);
 	}
 	mode::~mode(){
-		printf("size after all: %i\n",st.st_size);
-		printf("hu\n");
 		int c = munmap(ptr,st.st_size);
-		printf("%i - - - - -\n",c);
 		if(c == -1){
 			perror("munmap");
 			exit(-1);
@@ -411,11 +416,9 @@ namespace CryptoModes{
 		block = NULL;
 		key = NULL;
 		copykey = NULL;
+		printf("size at the end - %i\n", st.st_size);
 		std::cout<<"Очищено!";
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверено. Работает. Оптимизировано.
-//	void inline mode::copy(){for(uint8_t gg=0; gg<32;gg++)copykey[gg]=key[gg];}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //Проверено. Работает. Оптимизировано.
 	void mode::padding(){
@@ -437,7 +440,6 @@ namespace CryptoModes{
 //Проверено. Работает. Оптимизировано.
 	void inline mode::antipadding(){
 		uint8_t check=0x0;
-		printf("%i - primary size\n",st.st_size);
 		for(uint8_t i=1; i<16;i++){
 			lseek(fd,-i,SEEK_END);
 			read(fd, &check,1);
@@ -448,7 +450,6 @@ namespace CryptoModes{
 			else{
 				if( check == 0x1 ){
 					st.st_size -= i;
-					printf("%i - secondary size\n",st.st_size);
 					break;
 				}
 			}
@@ -537,27 +538,43 @@ namespace CryptoModes{
 				close(cel);
 				for (uint8_t i=0;i<16;i++) blok[i]=synk[i];
 			}
+			void encr(int sig);
 		protected:
 			uint8_t synk[32];
 			uint8_t blok[16];
 	};
-	void OFB::encr(){
+	void OFB::encr(){};
+	void OFB::encr(int sig){
 		uint64_t size=0,end;
+		uint8_t res[32];
 		if((st.st_size%16) !=0) end=((st.st_size+st.st_size%16)/16);
 		else end=st.st_size/16;
 		soldier.eninit(key);
+		if (sig == 1){		
+			uint32_t ku = open("/dev/urandom", O_RDONLY);
+			read(ku,synk,32);
+			close(ku);
+		}
+		if(sig == 2){		
+			lseek(fd,-32,SEEK_END);
+			read(fd,synk,32);
+			st.st_size-=32;
+			ftruncate(fd,st.st_size);
+			for(uint8_t i=0;i<32;i++) res[i]=synk[i];
+		}
 		for(uint64_t i=0;i<end;i++){
-			//soldier.encrypt((synk+(i%2)*16));
-			//for(int j=0;j<16;j++)printf("%2x ",synk[j+(i%2)*16]);
-			printf("\n");
 			soldier.encrypt((synk+(i%2)*16));
 			for(uint8_t kl=0;kl<16;kl++){
 				if(size == st.st_size) return;
 				*(ptr+i*16+kl)^=synk[kl+(i%2)*16];
-				printf("%2x ",*(ptr+i*16+kl));
 				size++;
 			}
 		}
+		if(sig == 1){
+			lseek(fd,0,SEEK_END);
+			write(fd,res,32);
+		}
+			
 	}
 
 //Режим простой замены с зацеплением
@@ -565,7 +582,7 @@ namespace CryptoModes{
 		public:
 			template<typename heh>CBC(heh hek):mode(hek){
 				int rid=open("posil.bin", O_RDONLY);
-				read(rid,vector,32);
+//				read(rid,vector,32);
 				close(rid);
 			}
 			void encr();
@@ -577,6 +594,9 @@ namespace CryptoModes{
 
 	void CBC::encr(){
 		uint8_t l=0;
+		uint32_t ku = open("/dev/urandom", O_RDONLY);
+		read(ku,vector,32);
+		close(ku);
 		soldier.eninit(key);
 		padding();
 		for(uint8_t i=0;i<2;i++){
@@ -587,16 +607,21 @@ namespace CryptoModes{
 			for(l=0;l<16;l++) *(ptr+i*16+l)^=*(ptr+(i-2)*16+l);
 			soldier.encrypt((ptr+i*16));
 		}
+		lseek(fd,0,SEEK_END);
+		write(fd, vector,32);
 	}
 
 	void CBC::decr(){
 		uint8_t l;
+		lseek(fd,-32,SEEK_END);
+		read(fd,vector,32);
+		st.st_size-=32;
+		ftruncate(fd,st.st_size);
 		soldier.deinit(key);
 		for(uint64_t i=0; i<(st.st_size/16);i++){
 			for(l=0;l<16;l++) old[l]=*(ptr+i*16+l);
 			soldier.decrypt((ptr+i*16));
 			for(l=0;l<16;l++){
-				printf("%x ", vector[l+(i%2)*16]);
 				*(ptr+i*16+l)^=vector[l+(i%2)*16];
 				vector[l+(i%2)*16]=old[l];
 			}
@@ -608,87 +633,28 @@ namespace CryptoModes{
 	class CFB{};
 //Режим выработки имитовствки
 	class MAC{};
-//	void CTR::decr(){
-//		soldier.deinit();
-//		for(uint64_t i=0; i<(
 //---------------------------------------------------------------------
 };
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
-/*	class CTR:public mode{
-		public:
-			void encr();
-			void decr(){};
-			template<typename heh> CTR(heh hek):mode(hek){
-				int ini=open("vect.bin",O_RDONLY);
-				printf("1\n");
-				read(ini,vec,8);
-				for(int i=0; i<8; i++)printf("%2x-",vec[i]);
-				printf("\n");
-				close(ini);
-				for(uint8_t i=8;i<16;i++)vec[i]=0x0;
-				resVec = new uint8_t [16];
-			};
-			~CTR();
-		protected:
-			void remadeVect();
-			void inline specVect();
-			uint8_t *spec;
-			uint8_t *resVec;
-//			struct initVect{
-//				uint8_t smth[8];
-//				uint64_t hi;
-//			}__attribute__((packed));
-			uint8_t vec[16];
-	};
-	CTR::~CTR(){
-		delete [] spec;
-		delete [] resVec;
-		spec=NULL;
-		//vec=NULL;
-	}
-	void CTR::remadeVect(){
-		*((__uint128_t*)(resVec))=*((__uint128_t*)(&vec));
-		uint8_t count=15;
-		for(uint8_t i=8; i<15;i++){
-			uint8_t swap=resVec[count];
-			resVec[count]=resVec[i];
-			resVec[i]=swap;
-			count--;
-		}
-		soldier.encrypt(resVec,copykey);
-		((uint64_t*)(&vec))[1]+=1;
-	}
-	void inline CTR::specVect(){
-		spec = new uint8_t [16];
-		for(uint8_t i=0; i<16;i++){
-			if (i<(16-st.st_size%16))spec[i]=*((uint8_t*)(ptr+st.st_size-16+i));
-			else spec[i]=0x0;
-		}
-	}
-	void CTR::encr(){
-		soldier.eninit();
-		for(int tr=0; tr<(st.st_size/16 - 1); tr++){
-			copy();
-			remadeVect();
-			//for(int i=0; i<16;i++)printf("%2x ",resVec[i]);
-			printf("\n");
-			soldier.encrypt(resVec,copykey);
-			//for(int i=0; i<16; i++)printf("%2x ", resVec[i]);
-			printf("\n");
-			block = (ptr+tr*16);
-			for(uint8_t i=0;i<16;i++)*((uint8_t*)block+i)^=*(resVec+i);
+using namespace std;
+namespace fs=std::filesystem;
 
-		}
-		copy();
-		specVect();
-		soldier.encrypt(spec,copykey);
-		for(uint8_t i=0; i<(16-st.st_size%16); i++)*(ptr+st.st_size-16+i)=spec[i];
-	}*/
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
+string sha256(const string str)
+{
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, str.c_str(), str.size());
+    SHA256_Final(hash, &sha256);
+    stringstream ss;
+    for(int i = 0; i < 32; i++)
+    {
+        ss << hex << setw(2) << setfill('0') << (int)hash[i];
+    }
+    return ss.str();
+}
 void ma(int sig){
-//	perror("mmap");
 	printf("\n%s - res\n",strsignal(sig));
 	exit(-1);
 }
@@ -697,12 +663,46 @@ void seg(int sig){
 	exit(-1);
 }
 int main(int argc, char* argv[]){
-	signal(SIGSEGV, ma);
+	blockKuz::generateTable();
+	uint8_t heh;
+	int kuv = open("table.bin",O_RDWR | O_CREAT, S_IWUSR | S_IRUSR);
+	printf("1\n");	
+	for(int i=0; i<256;i++){
+		for(int y=0;y<256;y++){
+			heh=polinMultiple[i][y];
+			write(kuv,&heh,1);
+		}
+	}
+	/*signal(SIGSEGV, ma);
 	signal(SIGTERM,seg);
 	int sl;
-	sl=open(argv[1], O_RDWR);
-	CryptoModes::CBC rm(sl);
-	rm.encr();
-	close(sl);
+	for(int i = 1; i < argc; i++){
+	        if(fs::is_directory(argv[i]))
+	        {
+	            for(auto& p: fs::recursive_directory_iterator(argv[i]))
+	            {
+	                if(fs::is_regular_file(p.path()))
+	                {
+				fs::path file=fs::path(p.path());
+				sl=open("key.bin", O_WRONLY,S_IWUSR | S_IRUSR);
+				write(sl,sha256(file.c_str()).c_str(),32);
+				close(sl);
+	                    	sl=open(file.c_str(), O_RDWR);
+				CryptoModes::CBC rm(sl);
+				rm.decr();
+				close(sl);
+	                }
+	            }
+	        }
+	        if(fs::is_regular_file(argv[i])) {
+			sl=open("key.bin", O_WRONLY,S_IWUSR | S_IRUSR);
+			write(sl,sha256(argv[i]).c_str(),32);
+			close(sl);
+	               	sl=open(argv[i], O_RDWR);
+			CryptoModes::CBC rm(sl);
+			rm.decr();
+			close(sl);
+		}
+	}*/
 	return 0;
 }

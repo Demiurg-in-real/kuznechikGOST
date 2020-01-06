@@ -63,8 +63,6 @@ static uint8_t polinMultiple[256][256];
 
 
 namespace blockKuz{
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Работает верно, одобрено
 
 	void generateTable(){
 		unsigned short int promez1, promez2, smeshenie;
@@ -128,8 +126,6 @@ namespace blockKuz{
 			}
 		}
 	}
-//-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Работает верно, одобрено
 	static inline void copy(uint8_t **res,uint8_t matr[16][16]){
 		for (uint8_t i=0;i<16;i++){
 			for (uint8_t j=0;j<16;j++){
@@ -137,8 +133,6 @@ namespace blockKuz{
 			}
 		}
 	};
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Работает верно, одобрено
 	static void generateMatrix(uint8_t matr[16][16]){
 		uint8_t smezh;
 		uint8_t **exponMatrix;
@@ -165,7 +159,6 @@ namespace blockKuz{
 		delete [] exponMatrix;
 		exponMatrix = NULL;
 	};
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	class LSX{
 		public:
 			void X (uint8_t *key, uint8_t *block,uint8_t &order);
@@ -205,16 +198,12 @@ namespace blockKuz{
 			newVector[i]=0x0;
 		}
 	}
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Проверенная функция
 	void LSX::X(uint8_t *key, uint8_t *block, uint8_t &order){ // order  - для определния того, какой по счёту ключ используется
 		for (uint8_t i=0; i<16; i++){
 			block[i]^=key[order*16+i];
 		}
 	}
 
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------
-//проверенная функция.
 
 	void LSX::S(uint8_t *block,const uint8_t pi[256]){
 		for(uint8_t i=0; i<16;i++){
@@ -222,8 +211,6 @@ namespace blockKuz{
 		}
 	}
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------
-//проверенная функция.
 
 	void LSX::L(uint8_t *block,uint8_t matr[16][16]){
 		for (uint8_t j=0; j<16;j++){
@@ -233,15 +220,11 @@ namespace blockKuz{
 		}
 		reset(block);
 	}
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверенная функция.
 	void LSX::swap(uint8_t *key,uint8_t *second_key){
 		for(uint8_t oran=0;oran<16;oran++){
 			key[oran+16]=second_key[oran];
 		}
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверенная функция.
 	void LSX::generate_key(uint8_t *key,uint8_t &order,uint8_t matr[16][16]){
 		for(uint8_t i=order*8; i<((order+1)*8);i++){
 			for(int j=0; j<16;j++) {
@@ -260,22 +243,6 @@ namespace blockKuz{
 			for (int l=0;l<16;l++) vector_for_key[l]=0x0;
 		}
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверенная функция.			
-		
-	/*class EncDec{
-		public:
-			EncDec(uint8_t *key);
-			void encrypt(uint8_t *block);
-			~EncDec();
-			void decrypt(uint8_t *block);
-			void inline eninit();
-			void inline deinit();// при множественном использовании encrypt/decrypt матрицы перемножения генерируются непозволительно много раз, вдобавок на каждой н-ой операции выскакивает невалиднсоть.
-			//Метод сработал.
-		protected:
-			LSX deffight;
-			uint8_t **cop;
-	};*/
 	
 	class EncDec{
 		public:
@@ -344,31 +311,7 @@ namespace blockKuz{
 			}
 		}
 	}
-	/*void EncDec::decrypt(uint8_t *block,uint8_t *key){
-		uint8_t kostil;
-		for(int8_t i=4;i>-1;i--){
-			for(int ref=0;ref<32;ref++) cop[ref]=key[ref];
-			if (i != 0){
-				kostil=i;
-				for(uint8_t l=0;l<kostil;l++){
-					deffight.generate_key(cop,l,matrix);
-				}
-			}
-			for(int8_t j=1;j>-1;j--){
-				kostil=j;
-				if (i == 4 && j == 1){
-					deffight.X(cop,block,kostil);
-					continue;
-				}
-				deffight.L(block,inmatrix);
-				deffight.S(block,inPi);
-				deffight.X(cop,block,kostil);
-			}
-		}
-	}*/
-//_____________________________________________________________________________________________________________________________________________________________
 };
-//Перепроверить на сокрытие и на оптимизацию.
 namespace CryptoModes{
 
 	class mode{
@@ -381,20 +324,16 @@ namespace CryptoModes{
 			uint8_t *block;
 			uint8_t *key;
 			uint8_t *copykey;
-//			uint64_t size;
 			uint64_t fd;
 			uint8_t *ptr;
 			struct stat st;//ни наю, надо ли сюда это впихивать... или в конструкторе оставить...
 			blockKuz::EncDec soldier;
-//		public:
 			void inline padding();
 			void inline antipadding();
-//			void inline copy();
 	};
 	template <typename railway>mode::mode(railway from){
 		fd=from;
 		fstat(fd,&st);
-//		size=st.st_size;
 		ptr=(uint8_t*)mmap(NULL, st.st_size, PROT_READ | PROT_WRITE,MAP_SHARED, fd,0);
 		if(ptr == MAP_FAILED){
 			perror("mmap");
@@ -420,11 +359,6 @@ namespace CryptoModes{
 		copykey = NULL;
 		std::cout<<"Очищено!";
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверено. Работает. Оптимизировано.
-//	void inline mode::copy(){for(uint8_t gg=0; gg<32;gg++)copykey[gg]=key[gg];}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверено. Работает. Оптимизировано.
 	void mode::padding(){
 		if( (st.st_size%16) != 0){
 			uint8_t one=0x1;
@@ -440,8 +374,6 @@ namespace CryptoModes{
 			lseek(fd,0,SEEK_SET);
 		}
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверено. Работает. Оптимизировано.
 	void inline mode::antipadding(){
 		uint8_t check=0x0;
 		for(uint8_t i=1; i<16;i++){
@@ -460,8 +392,6 @@ namespace CryptoModes{
 		}
 		ftruncate(fd,st.st_size);
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Работает корректно.
 	class EFB:public mode{
 		public:
 			void encr();
@@ -485,16 +415,13 @@ namespace CryptoModes{
 		}
 		antipadding();
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 	class CTR:public mode{
 		public:
 			void encr();
+			void encr(int sig);
 			void decr(){};
 			template <typename heh> CTR(heh hek):mode(hek){
-				int ini = open ("vect.bin",O_RDONLY);
-				read(ini,vec,8);
-				close(ini);
-				for(uint8_t i=8;i<16;i++) vec[i]=0x0;
+				printf("CTR is just beginning!\n");
 			}
 		protected:
 			uint8_t vec[16];
@@ -503,8 +430,7 @@ namespace CryptoModes{
 			void copyvect();
 			uint64_t hm;	// just for size. Очередной костыль на ниже...
 	};
-//-------------------------------------------------------------------
-//Костыльная хрень. Надо перебрать. Без хаков - некрасиво...
+	void CTR::encr(){};
 	void CTR::copyvect(){
 		uint8_t kostil=15;
 		swp++;
@@ -514,9 +440,29 @@ namespace CryptoModes{
 		}
 		for (uint8_t i=0; i<16;i++)nvec[i]=vec[i];
 	}
-//-------------------------------------------------------------------
-//Работает, но вроде с костылями....
-	void CTR::encr(){//this funcion is just for encrypt and decrypt.
+	void CTR::encr(int sig){//this funcion is just for encrypt and decrypt.
+		printf("hi!\n");
+		uint8_t res[8];
+		if (sig == 1){		
+			uint32_t ku = open("/dev/urandom", O_RDONLY);
+			read(ku,vec,8);
+			close(ku);
+			for(uint8_t i=0;i<8;i++){
+				res[i]=vec[i];
+				vec[i+8]=0x0;
+				printf("%2x ",res[i]);
+			}
+		}
+		if(sig == 2){		
+			lseek(fd,-8,SEEK_END);
+			read(fd,vec,8);
+			st.st_size-=8;
+			ftruncate(fd,st.st_size);
+			for(uint8_t i=0;i<8;i++) {
+				printf("%2x ",vec[i]);
+				vec[i+8]=0x0;
+			}
+		}
 		soldier.eninit(key);
 		uint64_t size=0x0,end;
 		if((st.st_size%16) != 0) st.st_size+=(16-st.st_size%16);
@@ -529,31 +475,51 @@ namespace CryptoModes{
 				size++;
 			}
 		}
+		if(sig == 1){
+			lseek(fd,0,SEEK_END);
+			write(fd,res,8);
+		}
 	}
-//--------------------------------------------------------------------
-//Режим гаммирования с обратной связью по выходу
 	class OFB:public mode{
 		public:
 			void encr();
 			void decr(){};
 			template<typename heh> OFB(heh hek):mode(hek){
 				int cel=open("posil.bin",O_RDONLY);
-				read(cel,synk,32);
+//				read(cel,synk,32);
 				close(cel);
 				for (uint8_t i=0;i<16;i++) blok[i]=synk[i];
 			}
+			void encr(int sig);
 		protected:
 			uint8_t synk[32];
 			uint8_t blok[16];
 	};
-	void OFB::encr(){
+	void OFB::encr(){};
+	void OFB::encr(int sig){
 		uint64_t size=0,end;
+		uint8_t res[32];
 		if((st.st_size%16) !=0) end=((st.st_size+st.st_size%16)/16);
 		else end=st.st_size/16;
 		soldier.eninit(key);
+		if (sig == 1){		
+			uint32_t ku = open("/dev/urandom", O_RDONLY);
+			read(ku,synk,32);
+			close(ku);
+			for(uint8_t i=0;i<32;i++){
+				res[i]=synk[i];
+				printf("%2x ",res[i]);
+			}
+		}
+		if(sig == 2){		
+			lseek(fd,-32,SEEK_END);
+			read(fd,synk,32);
+			st.st_size-=32;
+			ftruncate(fd,st.st_size);
+			for(uint8_t i=0;i<32;i++) printf("%2x ",synk[i]);
+		}
+		printf("\n");
 		for(uint64_t i=0;i<end;i++){
-			//soldier.encrypt((synk+(i%2)*16));
-			//for(int j=0;j<16;j++)printf("%2x ",synk[j+(i%2)*16]);
 			soldier.encrypt((synk+(i%2)*16));
 			for(uint8_t kl=0;kl<16;kl++){
 				if(size == st.st_size) return;
@@ -561,14 +527,18 @@ namespace CryptoModes{
 				size++;
 			}
 		}
+		if(sig == 1){
+			lseek(fd,0,SEEK_END);
+			write(fd,res,32);
+		}
+			
 	}
 
-//Режим простой замены с зацеплением
 	class CBC:public mode{
 		public:
 			template<typename heh>CBC(heh hek):mode(hek){
 				int rid=open("posil.bin", O_RDONLY);
-				read(rid,vector,32);
+//				read(rid,vector,32);
 				close(rid);
 			}
 			void encr();
@@ -580,6 +550,9 @@ namespace CryptoModes{
 
 	void CBC::encr(){
 		uint8_t l=0;
+		uint32_t ku = open("/dev/urandom", O_RDONLY);
+		read(ku,vector,32);
+		close(ku);
 		soldier.eninit(key);
 		padding();
 		for(uint8_t i=0;i<2;i++){
@@ -590,10 +563,16 @@ namespace CryptoModes{
 			for(l=0;l<16;l++) *(ptr+i*16+l)^=*(ptr+(i-2)*16+l);
 			soldier.encrypt((ptr+i*16));
 		}
+		lseek(fd,0,SEEK_END);
+		write(fd, vector,32);
 	}
 
 	void CBC::decr(){
 		uint8_t l;
+		lseek(fd,-32,SEEK_END);
+		read(fd,vector,32);
+		st.st_size-=32;
+		ftruncate(fd,st.st_size);
 		soldier.deinit(key);
 		for(uint64_t i=0; i<(st.st_size/16);i++){
 			for(l=0;l<16;l++) old[l]=*(ptr+i*16+l);
@@ -606,14 +585,8 @@ namespace CryptoModes{
 		antipadding();
 	}
 
-//режим гаммирования с обратной связью по шифротексту
-	class CFB{};
-//Режим выработки имитовствки
-	class MAC{};
-//---------------------------------------------------------------------
 };
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 using namespace std;
 namespace fs=std::filesystem;
 
@@ -643,6 +616,7 @@ int main(int argc, char* argv[]){
 	signal(SIGSEGV, ma);
 	signal(SIGTERM,seg);
 	int sl;
+	uint8_t *key;
 	for(int i = 1; i < argc; i++){
 	        if(fs::is_directory(argv[i]))
 	        {
@@ -651,18 +625,26 @@ int main(int argc, char* argv[]){
 	                if(fs::is_regular_file(p.path()))
 	                {
 				fs::path file=fs::path(p.path());
-	                    	sl=open(file.c_str(), O_RDWR);
-				CryptoModes::OFB rm(sl);
-				rm.encr();
+				sl=open("key.bin", O_WRONLY | O_CREAT,S_IWUSR | S_IRUSR);
+				write(sl,sha256(file.c_str()).c_str(),32);
 				close(sl);
+	                    	sl=open(file.c_str(), O_RDWR);
+				CryptoModes::CTR rm(sl);
+				rm.encr(2);
+				close(sl);
+				remove("key.bin");
 	                }
 	            }
 	        }
 	        if(fs::is_regular_file(argv[i])) {
-			sl=open(argv[i],O_RDWR);
-			CryptoModes::OFB rm(sl);
-			rm.encr();
+			sl=open("key.bin", O_WRONLY,S_IWUSR | S_IRUSR);
+			write(sl,sha256(argv[i]).c_str(),32);
 			close(sl);
+	               	sl=open(argv[i], O_RDWR);
+			CryptoModes::CTR rm(sl);
+			rm.encr(2);
+			close(sl);
+			remove("key.bin");
 		}
 	}
 	return 0;

@@ -57,167 +57,208 @@ const static unsigned short int polynom=451;
 static uint8_t polinMultiple[256][256];
 
 
-void generateTable(){
-	uint8_t pa;
-	int ku = open("table.bin", O_RDONLY);
-	for(int i=0; i<256;i++){
-		for(int y=0; y<256;y++){
-			read(ku, &pa,1);
-			polinMultiple[i][y]=pa;
+void generateTable()
+{
+
+	uint32_t smth=0x0, fir,sec;
+	uint8_t res=0x0;
+	for(int x = 0; x<256;x++)
+	{
+		for(int y=0; y<256;y++)
+		{
+			for(int i = 7; i!=(-1); i--)
+			{
+				fir=x;
+				sec=y;
+				if ( ((fir>>i)&0x1) == 0x1)
+				{
+					smth^=(sec<<(i));
+					printf("%x - перемножилось\n", smth);
+				}
+			}
+			int ord=0;
+			for (int i = 15; i!=(-1);i--)
+			{
+				if( ((smth>>i)&0x1) == 0x1)
+				{
+					ord = i;
+					printf("%i - for compare\n",i);
+					break;
+				}
+			}
+			printf("%i - ord\n",ord);
+			for(int i=ord;i!=(-1); i--)
+			{
+				smth^=(polynom<<(ord-8));
+				printf("%x - поделилось\n", smth);
+				for(int j=i; j!=(-1);j--)
+				{
+					if( ((smth>>j)&0x1) == 0x1)
+					{
+						ord = j;
+						printf("%i - here\n", ord);
+						break;
+					}
+				}
+				if (ord <= 7)
+				{
+					polinMultiple[x][y] = smth;
+					smth = 0x0;
+					break;
+				}
+			}
+			printf("%x - result\n",smth);
 		}
 	}
 }
 
-//----------------------------------------------------------------------------------------------------------------------------
-
-//Работает верно, одобрено
-	static inline void copy(uint8_t **res,uint8_t matr[16][16]){
-		for (uint8_t i=0;i<16;i++){
-			for (uint8_t j=0;j<16;j++){
-				res[i][j]=matr[i][j];
-			}
+static inline void copy(uint8_t **res,uint8_t matr[16][16])
+{
+	for (uint8_t i=0;i<16;i++)
+	{
+		for (uint8_t j=0;j<16;j++)
+		{
+			res[i][j]=matr[i][j];
 		}
-	};
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Работает верно, одобрено
-	static void generateMatrix(uint8_t matr[16][16]){
-		uint8_t smezh;
-		uint8_t **exponMatrix;
-		exponMatrix=(uint8_t**)malloc(16*sizeof(uint8_t*));
-		for (uint8_t i=0;i<16;i++){
-			exponMatrix[i] = (uint8_t*)malloc(16);
-		}
-		for(uint8_t i=0; i<4;i++){
-			copy(exponMatrix,matr);
-			for (uint8_t l=0;l<16;l++){
-				for (uint8_t j=0;j<16;j++){
-					smezh=0x0;
-					for(uint8_t r=0;r<16;r++){
-						smezh^=polinMultiple[exponMatrix[l][r]][exponMatrix[r][j]];
-					}
-					matr[l][j]=smezh;
+	}
+};
+static void generateMatrix(uint8_t matr[16][16])
+{
+	uint8_t smezh;
+	uint8_t **exponMatrix;
+	exponMatrix=(uint8_t**)malloc(16*sizeof(uint8_t*));
+	for (uint8_t i=0;i<16;i++)
+	{
+		exponMatrix[i] = (uint8_t*)malloc(16);
+	}
+	for(uint8_t i=0; i<4;i++)
+	{
+		copy(exponMatrix,matr);
+		for (uint8_t l=0;l<16;l++)
+		{
+			for (uint8_t j=0;j<16;j++)
+			{
+				smezh=0x0;
+				for(uint8_t r=0;r<16;r++)
+				{
+					smezh^=polinMultiple[exponMatrix[l][r]][exponMatrix[r][j]];
 				}
+				matr[l][j]=smezh;
 			}
 		}
-		//очищаем память для вспомогательного массива
-		for(uint8_t i=0; i<16;i++){
-			free(exponMatrix[i]);
-		}
-		free(exponMatrix);
-		exponMatrix = NULL;
-	};
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	}
+	for(uint8_t i=0; i<16;i++)
+	{
+		free(exponMatrix[i]);
+	}
+	free(exponMatrix);
+	exponMatrix = NULL;
+};
 struct lsx{
 	uint8_t *newVector;
 	uint8_t *swap_key;
-	uint8_t vector_for_key[16];// = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
+	uint8_t vector_for_key[16];
 } LSX;
-//		protected:
-//			uint8_t *newVector;
-//			uint8_t *swap_key;
-//			uint8_t vector_for_key[16]={0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};	
-	static void iniLSX(){
-		generateTable();
-		LSX.newVector = (uint8_t*)malloc(16);
-		LSX.swap_key = (uint8_t*)malloc(16);
-		for(int i=0;i<16;i++) {
-			LSX.newVector[i]=0x0;
-			LSX.swap_key[i]=0x0;
-		}
-	};
-
-	static void deiniLSX(){
-		free(LSX.newVector);
-		LSX.newVector = NULL;
-		free(LSX.swap_key);
-		LSX.swap_key = NULL;
+static void iniLSX()
+{
+	generateTable();
+	LSX.newVector = (uint8_t*)malloc(16);
+	LSX.swap_key = (uint8_t*)malloc(16);
+	for(int i=0;i<16;i++) 
+	{
+		LSX.newVector[i]=0x0;
+		LSX.swap_key[i]=0x0;
 	}
-
-	void reset(uint8_t *block){
-		for(uint8_t i=0; i<16; i++){
-			block[i]=LSX.newVector[i];
-			LSX.newVector[i]=0x0;
-		}
+};
+static void deiniLSX()
+{
+	free(LSX.newVector);
+	LSX.newVector = NULL;
+	free(LSX.swap_key);
+	LSX.swap_key = NULL;
+}
+void reset(uint8_t *block)
+{
+	for(uint8_t i=0; i<16; i++)
+	{
+		block[i]=LSX.newVector[i];
+		LSX.newVector[i]=0x0;
 	}
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------
-// Проверенная функция
-	void X(uint8_t *key, uint8_t *block, uint8_t order){ // order  - для определния того, какой по счёту ключ используется
-		for (uint8_t i=0; i<16; i++){
-			block[i]^=key[order*16+i];
-		}
+}
+void X(uint8_t *key, uint8_t *block, uint8_t order)
+{ 
+	for (uint8_t i=0; i<16; i++)
+	{
+		block[i]^=key[order*16+i];
 	}
-
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------
-//проверенная функция.
-
-	void S(uint8_t *block,const uint8_t pi[256]){
-		for(uint8_t i=0; i<16;i++){
-			block[i]=pi[block[i]];
-		}
+}
+void S(uint8_t *block,const uint8_t pi[256])
+{
+	for(uint8_t i=0; i<16;i++)
+	{
+		block[i]=pi[block[i]];
 	}
+}
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------
-//проверенная функция.
-
-	void L(uint8_t *block,uint8_t matr[16][16]){
-		for (uint8_t j=0; j<16;j++){
-			for(uint8_t k=0; k<16;k++){
-				//printf("10\n");
-				//printf("%2x\n%2x\n",polinMultiple[matr[k][j]][block[k]],LSX.newVector[j]);
-				//printf("13\n");
-				LSX.newVector[j]^=polinMultiple[matr[k][j]][block[k]];
-				//printf("11\n");
-			}
-		}
-		reset(block);
-	}
-//---------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверенная функция.
-	void swap(uint8_t *key,uint8_t *second_key){
-		for(uint8_t oran=0;oran<16;oran++){
-			key[oran+16]=second_key[oran];
+void L(uint8_t *block,uint8_t matr[16][16])
+{
+	for (uint8_t j=0; j<16;j++)
+	{
+		for(uint8_t k=0; k<16;k++)
+		{
+			LSX.newVector[j]^=polinMultiple[matr[k][j]][block[k]];
 		}
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Проверенная функция.
-	void generate_key(uint8_t *key,uint8_t order,uint8_t matr[16][16]){
-		for(uint8_t i=order*8; i<((order+1)*8);i++){
-			for(int j=0; j<16;j++) {
-				LSX.swap_key[j]=key[j];
-			}
-			LSX.vector_for_key[15]=i+1;
-			uint8_t ord=0;
-			L(LSX.vector_for_key,matr);
-			X(LSX.vector_for_key,key,ord);
-			S(key,Pi);
-			L(key,matr);
-			for(uint8_t j=0; j<16;j++){
-				key[j]^=key[16+j];
-			}
-			swap(key,LSX.swap_key);
-			for (int l=0;l<16;l++) LSX.vector_for_key[l]=0x0;
+	reset(block);
+}
+void swap(uint8_t *key,uint8_t *second_key)
+{
+	for(uint8_t oran=0;oran<16;oran++)
+	{
+		key[oran+16]=second_key[oran];
+	}
+}
+void generate_key(uint8_t *key,uint8_t order,uint8_t matr[16][16])
+{
+	for(uint8_t i=order*8; i<((order+1)*8);i++)
+	{
+		for(int j=0; j<16;j++) 
+		{
+			LSX.swap_key[j]=key[j];
+		}
+		LSX.vector_for_key[15]=i+1;
+		uint8_t ord=0;
+		L(LSX.vector_for_key,matr);
+		X(LSX.vector_for_key,key,ord);
+		S(key,Pi);
+		L(key,matr);
+		for(uint8_t j=0; j<16;j++)
+		{
+			key[j]^=key[16+j];
+		}
+		swap(key,LSX.swap_key);
+		for (int l=0;l<16;l++) 
+		{
+			LSX.vector_for_key[l]=0x0;
 		}
 	}
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-	void eninit(){generateMatrix(matrix);};
+}
+void eninit(){generateMatrix(matrix);};
 
-	void  dein(){
-		generateMatrix(matrix);
-		generateMatrix(inmatrix);
-	}
+void  dein()
+{
+	generateMatrix(matrix);
+	generateMatrix(inmatrix);
+}
 
 	void encrypt(uint8_t *block, uint8_t *key){
-		//printf("3\n");
-		//eninit();
-		//printf("4\n");
 		iniLSX();
-		for(uint8_t i=0; i<5 ; i++){
-			for(uint8_t j=0; j<2; j++){
-				//printf("5\n");
+		for(uint8_t i=0; i<5 ; i++)
+		{
+			for(uint8_t j=0; j<2; j++)
+			{
 				X(key,block,j);
-				//printf("6\n");
 				if( (i==4) && (j==1)) break;
-				//printf("7\n");
 				S(block,Pi);
 				L(block,matrix);
 			}
@@ -225,36 +266,45 @@ struct lsx{
 		}
 		deiniLSX();
 	}
-	void decrypt(uint8_t *block,uint8_t *key){
-		iniLSX();
-		dein();
-		uint8_t *cop;
-		cop=(uint8_t*)malloc(sizeof(uint8_t)*16);
-		uint8_t kostil;
-		for(int8_t i=4;i>-1;i--){
-			for(int ref=0;ref<32;ref++) cop[ref]=key[ref];
-			if (i != 0){
-				kostil=i;
-				for(uint8_t l=0;l<kostil;l++){
-					generate_key(cop,l,matrix);
-				}
-			}
-			for(int8_t j=1;j>-1;j--){
-				kostil=j;
-				if (i == 4 && j == 1){
-					X(cop,block,kostil);
-					continue;
-				}
-				L(block,inmatrix);
-				S(block,inPi);
-				X(cop,block,kostil);
+void decrypt(uint8_t *block,uint8_t *key)
+{
+	iniLSX();
+	uint8_t *cop;
+	cop=(uint8_t*)malloc(sizeof(uint8_t)*16);
+	uint8_t kostil;
+	for(int8_t i=4;i>-1;i--)
+	{
+		for(int ref=0;ref<32;ref++) 
+		{
+			cop[ref]=key[ref];
+		}
+		if (i != 0)
+		{
+			kostil=i;
+			for(uint8_t l=0;l<kostil;l++)
+			{
+				generate_key(cop,l,matrix);
 			}
 		}
-		free(cop);
-		cop=NULL;
+		for(int8_t j=1;j>-1;j--)
+		{
+			kostil=j;
+			if (i == 4 && j == 1)
+			{
+				X(cop,block,kostil);
+				continue;
+			}
+			L(block,inmatrix);
+			S(block,inPi);
+			X(cop,block,kostil);
+		}
 	}
+	free(cop);
+	cop=NULL;
+}
 
-void encr(int fd,int sig){		
+void encr(int fd,int sig)
+{		
 	uint8_t *key,*copykey;
 	uint8_t *block;
 	uint8_t synk[32];
@@ -268,13 +318,16 @@ void encr(int fd,int sig){
 	uint64_t size=0,end;
 	struct stat st;
 	fstat(fd,&st);
-	if(sig == 1) {kuk=open("/dev/urandom", O_RDONLY);
+	if(sig == 1) 
+	{
+		kuk=open("/dev/urandom", O_RDONLY);
 		read(kuk,synk,32);
 		for(int i=0;i<32;i++)printf("%2x ", synk[i]);
 		printf("\n");
 		close(kuk);
 	}
-	if(sig == 2){
+	if(sig == 2)
+	{
 		lseek(fd,-32,SEEK_END);
 		read(fd,synk,32);
 		for(int i=0; i<32;i++)printf("%2x ",synk[i]);
@@ -283,7 +336,8 @@ void encr(int fd,int sig){
 		ftruncate(fd,st.st_size);
 		lseek(fd,0,SEEK_SET);
 	}
-	if(sig == 3){
+	if(sig == 3)
+	{
 		kuk = open("posil.bin",O_RDONLY);
 		read(kuk,synk,32);
 		close(kuk);
@@ -294,19 +348,25 @@ void encr(int fd,int sig){
 	if((st.st_size%16) !=0) end=((st.st_size+st.st_size%16)/16);
 	else end=st.st_size/16;
 	eninit();
-	for(uint64_t i=0;i<end;i++){
+	for(uint64_t i=0;i<end;i++)
+	{
 		read(fd,block,16);
 		lseek(fd,-16,SEEK_CUR);
-		for(int i=0;i<32;i++)copykey[i]=key[i];
+		for(int i=0;i<32;i++)
+		{
+			copykey[i]=key[i];
+		}
 		encrypt((synk+(i%2)*16),copykey);
-		for(uint8_t kl=0;kl<16;kl++){
-		if(size == st.st_size) return;
+		for(uint8_t kl=0;kl<16;kl++)
+		{
+			if(size == st.st_size) return;
 			*(block+kl)^=synk[kl+(i%2)*16];
 			size++;
+			write(fd,(block+kl),1);
 		}
-		write(fd,block,16);
 	}
-	if(sig == 1){
+	if(sig == 1)
+	{
 		lseek(fd,0,SEEK_END);
 		write(fd,csynk,32);
 	}
@@ -315,25 +375,49 @@ void encr(int fd,int sig){
 	free(copykey);
 }
 
+uint32_t Crc32(unsigned char *buf, size_t len)
+{
+    uint32_t crc_table[256];
+    uint32_t crc; int i, j;
+
+    for (i = 0; i < 256; i++)
+    {
+        crc = i;
+        for (j = 0; j < 8; j++)
+            crc = crc & 1 ? (crc >> 1) ^ 0xEDB88320UL : crc >> 1;
+
+        crc_table[i] = crc;
+    };
+
+    crc = 0xFFFFFFFFUL;
+
+    while (len--)
+        crc = crc_table[(crc ^ *buf++) & 0xFF] ^ (crc >> 8);
+
+    return crc ^ 0xFFFFFFFFUL;
+}
+
 int main(int argc,char* argv[]){
 	generateTable();
+
+	uint8_t pass[256];
+	uint8_t key
+	printf("Please, write a password.\n*NOTE* : no longer than 256 characters\n\n");
+	fgets(pass,256,stdin);
+
 	int sig = atoi(argv[1]);
 	int kak;
-	//инициализация константных переменных
 	int vnutri, kolvo=1,end=0;
 
-	//исключения
 	char *exep1=".";
 	char *exep2="..";
 
-	//для текущей дирректории, в которой происходит обход
 	uint8_t *dirname;
 
-	//так просто надо, не спрашивай зачем. в reallok.c написал и оно не то что заработало, а даже с проверкой буфера
 	uint8_t  **dirnamebuf;
 	dirnamebuf=malloc(kolvo*sizeof(char*));
 	dirnamebuf[0]=malloc(1);
-	dirnamebuf[0]=".";
+	dirnamebuf[0]=argv[2];
 
 
 	struct dirent **scan;
@@ -350,7 +434,8 @@ int main(int argc,char* argv[]){
 			else{
 				dirname=malloc(sizeof(dirnamebuf[end])+sizeof(scan[vnutri]->d_name));
 				snprintf(dirname,sizeof(dirnamebuf[end])+sizeof(scan[vnutri])+1, "%s/%s", dirnamebuf[end],scan[vnutri]->d_name);
-				if(scan[vnutri]->d_type==DT_REG){
+				if(scan[vnutri]->d_type==DT_REG)
+				{
 					kak=open(dirname,O_RDWR);
 					encr(kak,sig);
 					close(kak);
@@ -360,5 +445,6 @@ int main(int argc,char* argv[]){
 		end++;
 	}
 	while(end!=kolvo);
+
 	return 0;
 }
