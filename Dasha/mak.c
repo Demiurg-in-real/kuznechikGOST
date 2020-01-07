@@ -74,7 +74,6 @@ void generateTable()
 				if ( ((fir>>i)&0x1) == 0x1)
 				{
 					smth^=(sec<<(i));
-//					printf("%x - перемножилось\n", smth);
 				}
 			}
 			int ord=0;
@@ -83,21 +82,17 @@ void generateTable()
 				if( ((smth>>i)&0x1) == 0x1)
 				{
 					ord = i;
-//					printf("%i - for compare\n",i);
 					break;
 				}
 			}
-//			printf("%i - ord\n",ord);
 			for(int i=ord;i!=(-1); i--)
 			{
 				smth^=(polynom<<(ord-8));
-//				printf("%x - поделилось\n", smth);
 				for(int j=i; j!=(-1);j--)
 				{
 					if( ((smth>>j)&0x1) == 0x1)
 					{
 						ord = j;
-//						printf("%i - here\n", ord);
 						break;
 					}
 				}
@@ -108,7 +103,6 @@ void generateTable()
 					break;
 				}
 			}
-//			printf("%x - result\n",smth);
 		}
 	}
 }
@@ -162,7 +156,6 @@ struct lsx{
 } LSX;
 static void iniLSX()
 {
-//	generateTable();
 	LSX.newVector = (uint8_t*)malloc(16);
 	LSX.swap_key = (uint8_t*)malloc(16);
 	for(int i=0;i<16;i++) 
@@ -244,35 +237,39 @@ void generate_key(uint8_t *key,uint8_t order,uint8_t matr[16][16])
 		}
 	}
 }
-void eninit(){generateMatrix(matrix);};
+void eninit()
+{
+	generateMatrix(matrix);
+}
 
-void  dein()
+void  deinit()
 {
 	generateMatrix(matrix);
 	generateMatrix(inmatrix);
 }
 
-	void encrypt(uint8_t *block, uint8_t *key){
-		iniLSX();
-		for(uint8_t i=0; i<5 ; i++)
+void encrypt(uint8_t *block, uint8_t *key)
+{
+	iniLSX();
+	for(uint8_t i=0; i<5 ; i++)
+	{
+		for(uint8_t j=0; j<2; j++)
 		{
-			for(uint8_t j=0; j<2; j++)
-			{
-				X(key,block,j);
-				if( (i==4) && (j==1)) break;
-				S(block,Pi);
-				L(block,matrix);
-			}
-			generate_key(key,i,matrix);
+			X(key,block,j);
+			if( (i==4) && (j==1)) break;
+			S(block,Pi);
+			L(block,matrix);
 		}
-		deiniLSX();
+		generate_key(key,i,matrix);
 	}
+	deiniLSX();
+}
 void decrypt(uint8_t *block,uint8_t *key)
 {
 	iniLSX();
 	uint8_t *cop;
 	cop=(uint8_t*)malloc(sizeof(uint8_t)*16);
-	uint8_t kostil;
+	uint8_t bad;
 	for(int8_t i=4;i>-1;i--)
 	{
 		for(int ref=0;ref<32;ref++) 
@@ -281,23 +278,23 @@ void decrypt(uint8_t *block,uint8_t *key)
 		}
 		if (i != 0)
 		{
-			kostil=i;
-			for(uint8_t l=0;l<kostil;l++)
+			bad=i;
+			for(uint8_t l=0;l<bad;l++)
 			{
 				generate_key(cop,l,matrix);
 			}
 		}
 		for(int8_t j=1;j>-1;j--)
 		{
-			kostil=j;
+			bad=j;
 			if (i == 4 && j == 1)
 			{
-				X(cop,block,kostil);
+				X(cop,block,bad);
 				continue;
 			}
 			L(block,inmatrix);
 			S(block,inPi);
-			X(cop,block,kostil);
+			X(cop,block,bad);
 		}
 	}
 	free(cop);
@@ -310,13 +307,9 @@ void encr(int fd,int sig,uint8_t *key)
 	uint8_t *block;
 	uint8_t synk[32];
 	uint8_t blok[16];
-//	key=(uint8_t*)malloc(32);
 	copykey=(uint8_t*)malloc(32);
 	block=(uint8_t*)malloc(16);
 	int kuk;
-//	int kuk=open("key.bin",O_RDONLY);
-//	read(kuk,key,32);
-//	close(kuk);
 	uint64_t size=0,end;
 	struct stat st;
 	fstat(fd,&st);
@@ -324,6 +317,7 @@ void encr(int fd,int sig,uint8_t *key)
 	{
 		kuk=open("/dev/urandom", O_RDONLY);
 		read(kuk,synk,32);
+		printf("\tReading synk...\n\t ");
 		for(int i=0;i<32;i++)printf("%2x ", synk[i]);
 		printf("\n");
 		close(kuk);
@@ -332,6 +326,7 @@ void encr(int fd,int sig,uint8_t *key)
 	{
 		lseek(fd,-32,SEEK_END);
 		read(fd,synk,32);
+		printf("\tReading synk..\n\t ");
 		for(int i=0; i<32;i++)printf("%2x ",synk[i]);
 		printf("\n");
 		st.st_size-=32;
@@ -344,7 +339,10 @@ void encr(int fd,int sig,uint8_t *key)
 		read(kuk,synk,32);
 		close(kuk);
 	}
-	printf("1\n");
+	printf("\n\tBegin the process of ");
+	if(sig == 1)printf("encryption\n");
+	if(sig == 2)printf("decryption\n");
+
 	uint8_t *csynk;
 	csynk=(uint8_t*)malloc(32);
 	for(int i=0;i<32;i++)csynk[i]=synk[i];
@@ -373,16 +371,17 @@ void encr(int fd,int sig,uint8_t *key)
 		lseek(fd,0,SEEK_END);
 		write(fd,csynk,32);
 	}
-	free(key);
 	free(block);
 	free(copykey);
+	printf("\tThe end of process\n");
 }
 
 uint32_t  rotr(uint32_t cn,int how){
 	return (cn>>how) | (cn<<(32-how));
 }
 
-void sha256(uint8_t *str,uint8_t *key){
+void sha256(uint8_t *str,uint8_t *key)
+{
 	uint32_t h0 = 0x6A09E667;
 	uint32_t h1 = 0xBB67AE85;
 	uint32_t h2 = 0x3C6EF372;
@@ -393,49 +392,86 @@ void sha256(uint8_t *str,uint8_t *key){
 	uint32_t h7 = 0x5BE0CD19;
 	uint32_t k[64]={0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 	uint64_t size = strlen(str) - 1;
-	if ( (size%(512/8)) == 0 ){
+	if ( (size%(512/8)) == 0 )
+	{
 		str = realloc(str,size+(512/8));
 		str[size]=0x80;
 		size+=(512/8);
 		uint64_t help=size - 64;
 		*((uint64_t*)(str+size-8))=(size - (512/8))*8;
 		uint8_t swap;
-		for(int x=1,y=8,iter=0;iter<4;iter++,x++,y--){
-			swap=str[size-x];
-			str[size-x]=str[size-y];
-			str[size-y]=swap;
-		}
+		
+		swap = str[size-1];
+		str[size-1] = str[size-8];
+		str[size-8] = swap;
+
+		swap = str[size-2];
+		str[size-2] = str[size-7];
+		str[size-7] = swap;
+
+		swap = str[size-3];
+		str[size-3] = str[size-6];
+		str[size-6] = swap;
+
+		swap = str[size-4];
+		str[size-4] = str[size-5];
+		str[size-5] = swap;
 	}
 	else{
-		if ( (size%(512/8)) > 0){
-			if ( (64-(size%(512/8))) >= 9){
+		if ( (size%(512/8)) > 0)
+		{
+			if ( (64-(size%(512/8))) >= 9)
+			{
 				uint8_t r = size % 64;
 				str = realloc(str, size+((512/8) - (size%(512/8))));
 				str[size] = 0x80;
 				uint64_t l = size;
 				size+=((512/8) - (size%(512/8)));
 				*((uint64_t*)(str+size-8))=l*8;
-			uint8_t swap;
-			for(int x=1, y=8,iter=0;iter<4;iter++,x++,y--){
-				swap=str[size-x];
-				str[size-x]=str[size-y];
-				str[size-y]=swap;
-			}
+				uint8_t swap;
+
+				swap = str[size-1];
+				str[size-1] = str[size-8];
+				str[size-8] = swap;
+
+				swap = str[size-2];
+				str[size-2] = str[size-7];
+				str[size-7] = swap;
+				
+				swap = str[size-3];
+				str[size-3] = str[size-6];
+				str[size-6] = swap;
+				
+				swap = str[size-4];
+				str[size-4] = str[size-5];
+				str[size-5] = swap;
 			}
 			else{
-				if ( (64-(size%(512/8))) < 9){
+				if ( (64-(size%(512/8))) < 9)
+				{
 					uint64_t diff = 64 -size%(512/8);
 					uint64_t l = size;
 					str = realloc(str, size+diff+(512/8));
 					str[size] = 0x80;
 					size+=(diff+(512/8));
 					*((uint64_t*)(str+size-8))=l*8;
-			uint8_t swap;
-			for(int x=1, y=8,iter=0;iter<4;iter++,x++,y--){
-				swap=str[size-x];
-				str[size-x]=str[size-y];
-				str[size-y]=swap;
-			}
+					uint8_t swap;
+					
+					swap = str[size-1];
+					str[size-1] = str[size-8];
+					str[size-8] = swap;
+
+					swap = str[size-2];
+					str[size-2] = str[size-7];
+					str[size-7] = swap;
+
+					swap = str[size-3];
+					str[size-3] = str[size-6];
+					str[size-6] = swap;
+
+					swap = str[size-4];
+					str[size-4] = str[size-5];
+					str[size-5] = swap;
 				}
 			}
 		}
@@ -520,7 +556,13 @@ int main(int argc,char* argv[]){
 	printf("Please, write a password.\n*NOTE* : no longer than 256 characters\n\n");
 	fgets(pass,256-1,stdin);	
 	sha256(pass,key);
+	printf("\nThe key: ");
+	for(int i = 0 ; i<32; i++)printf("%x ", key[i]);
 	free(pass);
+	
+	printf("\nInitializating table...\t");
+	generateTable();
+	printf("Ready.\n");
 
 	int sig = atoi(argv[1]);	
 	int kak;
@@ -539,9 +581,10 @@ int main(int argc,char* argv[]){
 
 	struct dirent **scan;
 	struct stat st;
-	printf("3\n");
+	printf("Startin process.\n");
 	do{
 		vnutri=scandir(dirnamebuf[end],&scan,NULL,alphasort);
+		printf("In directory: %s\n", dirnamebuf[end]);
 		while(vnutri--){
 			if ( strcmp(scan[vnutri]->d_name,exep1) != 0 && strcmp(scan[vnutri]->d_name,exep2) != 0 && scan[vnutri]->d_type == DT_DIR){
 				kolvo++;
@@ -551,14 +594,22 @@ int main(int argc,char* argv[]){
 			}
 			else{
 				dirname=malloc(sizeof(dirnamebuf[end])+sizeof(scan[vnutri]->d_name));
-				snprintf(dirname,sizeof(dirnamebuf[end])+sizeof(scan[vnutri])+1, "%s/%s", dirnamebuf[end],scan[vnutri]->d_name);
+				snprintf(dirname,256, "%s/%s", dirnamebuf[end],scan[vnutri]->d_name);
 				if(scan[vnutri]->d_type==DT_REG)
 				{
-					printf("2\n");
 					kak=open(dirname,O_RDWR);
+					if(kak == -1){
+						perror("open");
+						continue;
+					}
+					printf("\t-Target = %s\n", dirname);
 					encr(kak,sig,key);
-					close(kak);
+					if(close(kak) != 0){
+						perror("close");
+						exit(-1);
+					}
 				}
+				free(dirname);
 			}
 		}
 		end++;
