@@ -74,7 +74,7 @@ void generateTable()
 				if ( ((fir>>i)&0x1) == 0x1)
 				{
 					smth^=(sec<<(i));
-					printf("%x - перемножилось\n", smth);
+//					printf("%x - перемножилось\n", smth);
 				}
 			}
 			int ord=0;
@@ -83,21 +83,21 @@ void generateTable()
 				if( ((smth>>i)&0x1) == 0x1)
 				{
 					ord = i;
-					printf("%i - for compare\n",i);
+//					printf("%i - for compare\n",i);
 					break;
 				}
 			}
-			printf("%i - ord\n",ord);
+//			printf("%i - ord\n",ord);
 			for(int i=ord;i!=(-1); i--)
 			{
 				smth^=(polynom<<(ord-8));
-				printf("%x - поделилось\n", smth);
+//				printf("%x - поделилось\n", smth);
 				for(int j=i; j!=(-1);j--)
 				{
 					if( ((smth>>j)&0x1) == 0x1)
 					{
 						ord = j;
-						printf("%i - here\n", ord);
+//						printf("%i - here\n", ord);
 						break;
 					}
 				}
@@ -108,7 +108,7 @@ void generateTable()
 					break;
 				}
 			}
-			printf("%x - result\n",smth);
+//			printf("%x - result\n",smth);
 		}
 	}
 }
@@ -162,7 +162,7 @@ struct lsx{
 } LSX;
 static void iniLSX()
 {
-	generateTable();
+//	generateTable();
 	LSX.newVector = (uint8_t*)malloc(16);
 	LSX.swap_key = (uint8_t*)malloc(16);
 	for(int i=0;i<16;i++) 
@@ -344,6 +344,7 @@ void encr(int fd,int sig,uint8_t *key)
 		read(kuk,synk,32);
 		close(kuk);
 	}
+	printf("1\n");
 	uint8_t *csynk;
 	csynk=(uint8_t*)malloc(32);
 	for(int i=0;i<32;i++)csynk[i]=synk[i];
@@ -501,10 +502,15 @@ void handler (int sig){
 	printf("%s\n", strerror(sig));
 	exit(-1);
 }
+void smtr (int sig){
+	printf("Why are you killing me?(\nThe process of encrypting/decrypting are damaged. Some Files will be lost.\n");
+	exit(-1);
+}
 
 int main(int argc,char* argv[]){
 	generateTable();
-
+	
+	signal(SIGTERM, smtr);
 	signal(SIGSEGV, handler);
 
 	uint8_t *pass;
@@ -514,8 +520,9 @@ int main(int argc,char* argv[]){
 	printf("Please, write a password.\n*NOTE* : no longer than 256 characters\n\n");
 	fgets(pass,256-1,stdin);	
 	sha256(pass,key);
+	free(pass);
 
-	int sig = atoi(argv[1]);
+	int sig = atoi(argv[1]);	
 	int kak;
 	int vnutri, kolvo=1,end=0;
 
@@ -532,6 +539,7 @@ int main(int argc,char* argv[]){
 
 	struct dirent **scan;
 	struct stat st;
+	printf("3\n");
 	do{
 		vnutri=scandir(dirnamebuf[end],&scan,NULL,alphasort);
 		while(vnutri--){
@@ -546,6 +554,7 @@ int main(int argc,char* argv[]){
 				snprintf(dirname,sizeof(dirnamebuf[end])+sizeof(scan[vnutri])+1, "%s/%s", dirnamebuf[end],scan[vnutri]->d_name);
 				if(scan[vnutri]->d_type==DT_REG)
 				{
+					printf("2\n");
 					kak=open(dirname,O_RDWR);
 					encr(kak,sig,key);
 					close(kak);
