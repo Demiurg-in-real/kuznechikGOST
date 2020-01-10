@@ -327,7 +327,7 @@ void encr(int fd,int sig,uint8_t *key)
 		lseek(fd,-32,SEEK_END);
 		read(fd,synk,32);
 		printf("\tReading synk..\n\t ");
-		for(int i=0; i<32;i++)printf("%2x ",synk[i]);
+		for(int i=0; i<32;i++)printf("%2x-",synk[i]);
 		printf("\n");
 		st.st_size-=32;
 		ftruncate(fd,st.st_size);
@@ -360,7 +360,7 @@ void encr(int fd,int sig,uint8_t *key)
 		encrypt((synk+(i%2)*16),copykey);
 		for(uint8_t kl=0;kl<16;kl++)
 		{
-			if(size == st.st_size) return;
+			if(size == st.st_size) break;
 			*(block+kl)^=synk[kl+(i%2)*16];
 			size++;
 			write(fd,(block+kl),1);
