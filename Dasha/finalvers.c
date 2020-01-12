@@ -345,7 +345,7 @@ void encr(int fd,int sig,uint8_t *key)
 	uint8_t *csynk;
 	csynk=(uint8_t*)malloc(32);
 	for(int i=0;i<32;i++)csynk[i]=synk[i];
-	if((st.st_size%16) !=0) end=((st.st_size+st.st_size%16)/16);
+	if((st.st_size%16) !=0) end=(st.st_size/16)+1;
 	else end=st.st_size/16;
 	eninit();
 	for(uint64_t i=0;i<end;i++)
